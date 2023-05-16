@@ -14,6 +14,9 @@ class IPCondition(Condition):
         else:
             return False
 
+    def __repr__(self):
+        return f"IPCondition(ip={self.ip})"
+
 
 class AndCondition(Condition):
     def __init__(self, condition1, condition2):
@@ -23,6 +26,9 @@ class AndCondition(Condition):
     def matches(self, packet):
         return self.condition1.matches(packet) and self.condition2.matches(packet)
 
+    def __repr__(self):
+        return f"AndCondition(condition1={repr(self.condition1)}, condition2={repr(self.condition2)})"
+
 
 class OrCondition(Condition):
     def __init__(self, condition1, condition2):
@@ -31,6 +37,9 @@ class OrCondition(Condition):
 
     def matches(self, packet):
         return self.condition1.matches(packet) or self.condition2.matches(packet)
+
+    def __repr__(self):
+        return f"OrCondition(condition1={repr(self.condition1)}, condition2={repr(self.condition2)})"
 
 
 class TimeRangeCondition(Condition):
@@ -42,6 +51,9 @@ class TimeRangeCondition(Condition):
         current_time = datetime.datetime.now().time()
         return self.start_time <= current_time <= self.end_time
 
+    def __repr__(self):
+        return f"TimeRangeCondition(start_time={self.start_time}, end_time={self.end_time})"
+
 
 class IPRangeCondition(Condition):
     def __init__(self, start_ip, end_ip):
@@ -49,23 +61,28 @@ class IPRangeCondition(Condition):
         self.end_ip = end_ip
 
     def matches(self, packet):
-        ip = IP(packet.add_payload())
-        return IP(self.start_ip) <= ip.src <= IP(self.end_ip) or IP(self.start_ip) <= ip.dst <= IP(self.end_ip)
+        try:
+            ip = IP(packet.payload)
+            return IP(self.start_ip) <= ip.src <= IP(self.end_ip) or IP(self.start_ip) <= ip.dst <= IP(self.end_ip)
+        except (IndexError, ValueError):
+            return False
 
-    def __str__(self):
-        return f"IPRangeCondition: {self.start_ip} - {self.end_ip}"
-
+    def __repr__(self):
+        return f"IPRangeCondition(start_ip={self.start_ip}, end_ip={self.end_ip})"
 
 class SubnetCondition(Condition):
     def __init__(self, subnet):
         self.subnet = subnet
 
     def matches(self, packet):
-        ip = IP(packet.load)
-        return ip.src in IP(self.subnet) or ip.dst in IP(self.subnet)
+        try:
+            ip = IP(packet.load)
+            return ip.src in IP(self.subnet) or ip.dst in IP(self.subnet)
+        except (IndexError, ValueError):
+            return False
 
-    def __str__(self):
-        return f"SubnetCondition: {self.subnet}"
+    def __repr__(self):
+        return f"SubnetCondition(subnet={self.subnet})"
 
 
 class PortCondition(Condition):
@@ -83,9 +100,8 @@ class PortCondition(Condition):
             else:
                 return False
 
-    def __str__(self):
-        return f"PortCondition: {self.port}"
-
+    def __repr__(self):
+        return f"PortCondition(port={self.port})"
 
 class HeaderCondition(Condition):
     def __init__(self, header_name, header_value):
@@ -96,8 +112,8 @@ class HeaderCondition(Condition):
         # Check if the specified header is present and has the expected value
         return self.header_name in packet and packet[self.header_name] == self.header_value
 
-    def __str__(self):
-        return f"HeaderCondition: {self.header_name}={self.header_value}"
+    def __repr__(self):
+        return f"HeaderCondition(header_name={self.header_name}, header_value={self.header_value})"
 
 
 class ContentCondition(Condition):
@@ -106,10 +122,10 @@ class ContentCondition(Condition):
 
     def matches(self, packet):
         # Check if the packet payload contains the specified content
-        return self.content in packet.get_payload()
+        return self.content in packet.payload
 
-    def __str__(self):
-        return f"ContentCondition: {self.content}"
+    def __repr__(self):
+        return f"ContentCondition(content={self.content})"
 
 
 class MetadataCondition(Condition):
@@ -121,5 +137,6 @@ class MetadataCondition(Condition):
         # Check if the specified metadata key is present and has the expected value
         return packet.metadata.get(self.metadata_key) == self.metadata_value
 
-    def __str__(self):
-        return f"MetadataCondition: {self.metadata_key}={self.metadata_value}"
+    def __repr__(self):
+        return f"MetadataCondition(metadata_key={self.metadata_key}, metadata_value={self.metadata_value})"
+
