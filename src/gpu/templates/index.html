@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firewall Web Interface</title>
+</head>
+<body>
+    <h1>Firewall Web Interface</h1>
+
+    <form action="/process" method="POST">
+        <label for="source_ip">Source IP:</label>
+        <input type="text" id="source_ip" name="source_ip" required><br><br>
+
+        <label for="destination_ip">Destination IP:</label>
+        <input type="text" id="destination_ip" name="destination_ip" required><br><br>
+
+        <input type="submit" value="Process Packet">
+    </form>
+</body>
+</html>
