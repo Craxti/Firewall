@@ -23,7 +23,7 @@ MarkupSafe = "^2.1.2"
 pycparser = "^2.21"
 scapy = "^2.5.0"
 Werkzeug = "^2.3.4"
-
+scikit-learn = "^1.2.2"
 
 
 [build-system]
