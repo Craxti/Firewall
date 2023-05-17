@@ -384,6 +384,11 @@ class DynamicPacketProcessor(CustomPacketProcessor):
         else:
             print("Unsupported action for rule:", rule)
 
-    async def _process_packet_processors(self, packet):
-        for processor in self.processors:
-            await processor.process(packet)
+    def _get_matched_rules(self, packet, payload):
+        matched_rules = []
+        # Implement your rule matching logic here
+        # Example: Iterate over a list of rules and check if the packet matches each rule's conditions
+        for rule in matched_rules:
+            if rule.matches(packet, payload):
+                matched_rules.append(rule)
+        return matched_rules
