@@ -85,7 +85,6 @@ class EmailNotificationAction(Action):
             server.sendmail(self.sender_email, self.receiver_email, msg)
 
 
-
 class EncryptionAction(Action):
     def __init__(self, encryption_key):
         self.encryption_key = encryption_key
@@ -96,6 +95,7 @@ class EncryptionAction(Action):
         cipher = Fernet(self.encryption_key)
         encrypted_payload = cipher.encrypt(incoming_packet.payload)
         incoming_packet.payload = encrypted_payload
+
 
 class DecryptionAction(Action):
     def __init__(self, decryption_key):
@@ -128,6 +128,7 @@ class CombinedAction(Action):
     def process(self, incoming_packet):
         for action in self.actions:
             action.process(incoming_packet)
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
