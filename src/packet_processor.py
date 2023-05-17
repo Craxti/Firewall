@@ -7,6 +7,7 @@ from scapy.layers.http import HTTP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 from scapy.sendrecv import sendp
+import asyncio
 
 from src.action import BlockAction, AllowAction, LogAction
 
@@ -281,19 +282,7 @@ class TrafficBehaviorAnalysisProcessor(CustomPacketProcessor):
     def has_traffic_anomaly(self, packet):
         # Implement your traffic behavior analysis logic here
         # Example: Analyze traffic patterns or detect anomalies in the packet
-
-        # Check if the packet size exceeds a threshold
-        if packet.size > 1000:
-            return True
-
-        # Check if the packet contains a specific protocol layer
-        if packet.haslayer(TCP) or packet.haslayer(UDP):
-            # Check if the packet has unusual flags or ports
-            if packet[TCP].flags == "S" or packet[TCP].sport == 12345:
-                return True
-
-        # No traffic behavior anomaly detected
-        return False
+        return self.check_traffic_anomaly(packet)
 
     def check_traffic_anomaly(self, packet):
         # Replace this with your actual implementation
@@ -321,11 +310,80 @@ class DynamicPacketProcessor(CustomPacketProcessor):
     def register_processor(self, processor):
         self.processors.append(processor)
 
+    def unregister_processor(self, processor):
+        if processor in self.processors:
+            self.processors.remove(processor)
+
     def register_observer(self, observer):
         self.observers.append(observer)
 
-    def process(self, packet):
+    def unregister_observer(self, observer):
+        if observer in self.observers:
+            self.observers.remove(observer)
+
+    async def process(self, packet):
+        tasks = []
         for processor in self.processors:
-            processor.process(packet)
-            for observer in self.observers:
-                observer.update(packet)
+            tasks.append(processor.process(packet))
+        await asyncio.gather(*tasks)
+
+        for observer in self.observers:
+            observer.update(packet)
+
+    def set_processor_order(self, processor_order):
+        """
+        Set the order of processor execution.
+
+        :param processor_order: List of processor instances in the desired execution order.
+        """
+        self.processors = processor_order
+
+    def prioritize_processor(self, processor, priority):
+        """
+        Set the priority of a processor.
+
+        :param processor: The processor instance.
+        :param priority: The priority value. Processors with lower values will be executed first.
+        """
+        for idx, proc in enumerate(self.processors):
+            if proc == processor:
+                self.processors.pop(idx)
+                self.processors.insert(priority, processor)
+                break
+
+    async def process_packet(self, packet_data):
+        incoming_packet = Ether(packet_data)
+        print("Processing packet:", incoming_packet.summary())
+
+        # Extract the payload from the Raw layer
+        raw_layer = incoming_packet.getlayer(Raw)
+        if raw_layer:
+            ip_payload = raw_layer.load
+        else:
+            ip_payload = b""
+
+        matched_rules = self._get_matched_rules(incoming_packet, ip_payload)
+        for rule in matched_rules:
+            await self._process_rule(rule, incoming_packet)
+            if rule.action.stops_processing:
+                break
+
+        await self.process(incoming_packet)
+
+    async def _process_rule(self, rule, packet):
+        # Perform the specified action for the matched rule
+        if isinstance(rule.action, BlockAction):
+            print("Blocking packet:", packet.summary())
+            # Implement your code to block the packet
+        elif isinstance(rule.action, AllowAction):
+            print("Allowing packet:", packet.summary())
+            # Implement your code to allow the packet
+        elif isinstance(rule.action, LogAction):
+            print("Logging packet:", packet.summary())
+            # Implement your code to log the packet
+        else:
+            print("Unsupported action for rule:", rule)
+
+    async def _process_packet_processors(self, packet):
+        for processor in self.processors:
+            await processor.process(packet)

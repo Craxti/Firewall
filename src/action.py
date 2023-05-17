@@ -67,6 +67,25 @@ class RedirectAction(Action):
         send(incoming_packet, verbose=False)
 
 
+class ExecuteScriptAction(Action):
+    def __init__(self, script_path):
+        self.script_path = script_path
+
+    def process(self, incoming_packet):
+        # Execute a custom script or command with the packet data
+        # Example: Execute a Python script with the packet data as an argument
+        try:
+            import subprocess
+            result = subprocess.run(['python', self.script_path, str(incoming_packet)], capture_output=True, text=True)
+            output = result.stdout.strip()
+            if output:
+                print("Script output:", output)
+        except Exception as e:
+            print("Error executing script:", e)
+
+        incoming_packet.accept()
+
+
 class EmailNotificationAction(Action):
     def __init__(self, smtp_server, sender_email, receiver_email, subject):
         self.smtp_server = smtp_server
@@ -127,10 +146,6 @@ class CombinedAction(Action):
             action.process(incoming_packet)
 
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-
 class AsyncAction(Action):
     def __init__(self, action):
         self.action = action
@@ -139,3 +154,7 @@ class AsyncAction(Action):
         with ThreadPoolExecutor() as executor:
             future = executor.submit(self.action.process, incoming_packet)
             future.result()
+
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
