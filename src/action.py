@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import smtplib
+from concurrent.futures import ThreadPoolExecutor
 
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
@@ -13,7 +14,6 @@ class Action(ABC):
 
 
 class BlockAction(Action):
-
     logger = logging.getLogger("BlockAction")
 
     def __init__(self):
@@ -21,11 +21,10 @@ class BlockAction(Action):
 
     def process(self, incoming_packet):
         self.logger.info("Block packet: %s", incoming_packet.summary())
-#        incoming_packet.drop()
+        incoming_packet.drop()
 
 
 class AllowAction(Action):
-
     logger = logging.getLogger("AllowAction")
 
     def process(self, incoming_packet):
@@ -34,7 +33,6 @@ class AllowAction(Action):
 
 
 class LogAction(Action):
-
     logger = logging.getLogger("LogAction")
 
     def __init__(self, log_file):
@@ -48,7 +46,6 @@ class LogAction(Action):
 
 
 class InterfaceBlockAction(Action):
-
     logger = logging.getLogger("InterfaceBlockAction")
 
     def __init__(self, interface):
@@ -132,3 +129,13 @@ class CombinedAction(Action):
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+
+class AsyncAction(Action):
+    def __init__(self, action):
+        self.action = action
+
+    def process(self, incoming_packet):
+        with ThreadPoolExecutor() as executor:
+            future = executor.submit(self.action.process, incoming_packet)
+            future.result()
