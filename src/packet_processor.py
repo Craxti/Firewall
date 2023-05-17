@@ -281,7 +281,19 @@ class TrafficBehaviorAnalysisProcessor(CustomPacketProcessor):
     def has_traffic_anomaly(self, packet):
         # Implement your traffic behavior analysis logic here
         # Example: Analyze traffic patterns or detect anomalies in the packet
-        return self.check_traffic_anomaly(packet)
+
+        # Check if the packet size exceeds a threshold
+        if packet.size > 1000:
+            return True
+
+        # Check if the packet contains a specific protocol layer
+        if packet.haslayer(TCP) or packet.haslayer(UDP):
+            # Check if the packet has unusual flags or ports
+            if packet[TCP].flags == "S" or packet[TCP].sport == 12345:
+                return True
+
+        # No traffic behavior anomaly detected
+        return False
 
     def check_traffic_anomaly(self, packet):
         # Replace this with your actual implementation
