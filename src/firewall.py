@@ -19,6 +19,9 @@ class Firewall:
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler())
 
+        self.packet_count = 0
+        self.start_time = time.time()
+
     def serialize(self, file_path):
         with open(file_path, 'wb') as f:
             pickle.dump(self, f)
@@ -104,6 +107,7 @@ class Firewall:
             packet_processor.process(incoming_packet)
 
     def process_packet(self, incoming_packet):
+        self.packet_count += 1
         self.logger.info("Processing packet: %s", incoming_packet.summary())
 
         if IP in incoming_packet:
@@ -135,3 +139,9 @@ class Firewall:
 
     def start_sniffing(self):
         sniff(prn=self.process_packet)
+
+    def get_packet_count(self):
+        return self.packet_count
+
+    def get_elapsed_time(self):
+        return time.time() - self.start_time
