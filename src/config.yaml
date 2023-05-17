@@ -1,0 +1,20 @@
+known_threats:
+  - ip_address: "192.168.1.10"
+    protocol: "TCP"
+    port: 80
+    description: "Malicious IP"
+  - ip_address: "10.0.0.1"
+    protocol: "UDP"
+    port: 53
+    description: "Suspicious IP"
+
+training_data:
+  - packet: "08002703a3e500ff0000"
+    label: "threat"
+  - packet: "08002703a3e500ff0001"
+    label: "normal"
+  - packet: "08002703a3e500ff0002"
+    label: "threat"
+
+
+interface: eth0
