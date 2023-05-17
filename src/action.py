@@ -21,7 +21,7 @@ class BlockAction(Action):
 
     def process(self, incoming_packet):
         self.logger.info("Block packet: %s", incoming_packet.summary())
-        incoming_packet.drop()
+#        incoming_packet.drop()
 
 
 class AllowAction(Action):

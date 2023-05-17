@@ -2,8 +2,7 @@ from src.firewall import Firewall
 from src.rule import FirewallRule
 from src.condition import IPCondition, PortCondition
 from src.action import BlockAction, AllowAction, LogAction, InterfaceBlockAction, RedirectAction
-from src.packet_processor import CustomPacketProcessor, MalwareDetectionProcessor, TrafficBehaviorAnalysisProcessor
-
+from src.packet_processor import DynamicPacketProcessor, CustomPacketProcessor, MalwareDetectionProcessor, TrafficBehaviorAnalysisProcessor
 
 if __name__ == "__main__":
     firewall = Firewall()
@@ -38,14 +37,27 @@ if __name__ == "__main__":
     redirect_rule = FirewallRule(redirect_condition, redirect_action)
     firewall.add_rule(redirect_rule)
 
-    # Adding custom packet processors
+    # Create custom packet processors
     custom_packet_processor = CustomPacketProcessor()
     malware_processor = MalwareDetectionProcessor()
     traffic_processor = TrafficBehaviorAnalysisProcessor()
+
+    # Create dynamic packet processor and register the custom packet processors
+    dynamic_packet_processor = DynamicPacketProcessor()
+    dynamic_packet_processor.register_processor(custom_packet_processor)
+    dynamic_packet_processor.register_processor(malware_processor)
+    dynamic_packet_processor.register_processor(traffic_processor)
+
+    # Add the dynamic packet processor to the firewall
+    firewall.add_packet_processor(dynamic_packet_processor)
+
     firewall.add_packet_processor(custom_packet_processor)
     firewall.add_packet_processor(malware_processor)
     firewall.add_packet_processor(traffic_processor)
 
     # Start the firewall
     firewall.add_packet_processor(CustomPacketProcessor())
+
+
+    # Start the firewall
     firewall.start_sniffing()
