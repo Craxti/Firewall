@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import logging
 from scapy.layers.l2 import ARP
 from scapy.layers.inet6 import ICMPv6ND_NS
 from scapy.layers.inet import ICMP, UDP, TCP, IP
@@ -8,6 +7,8 @@ from scapy.layers.http import HTTP
 from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 from scapy.sendrecv import sendp
+
+from src.action import BlockAction, AllowAction, LogAction
 
 
 class PacketProcessor(ABC):
@@ -57,9 +58,7 @@ class CustomPacketProcessor(PacketProcessor):
 
 class MyPacketProcessor(CustomPacketProcessor):
     def process(self, packet):
-        print("Custom packet processing:")
-        print("Source MAC:", packet[Ether].src)
-        print("Destination MAC:", packet[Ether].dst)
+        super().process(packet)
 
         if IP in packet:
             # IP Packet Handling
@@ -89,6 +88,15 @@ class MyPacketProcessor(CustomPacketProcessor):
         # Implement your logic for blocking a malicious packet
         print("Blocking malicious packet:", packet.summary())
 
+        # Drop the packet
+        # Example: You can simply return here to drop the packet
+
+        # Send a response indicating the detection of malware
+        # Example: You can use scapy to send an ICMP error message to the sender
+        icmp_error = ICMP(type=3, code=1)  # Destination Unreachable - Host Unreachable
+        response_packet = IP(src=packet[IP].dst, dst=packet[IP].src) / icmp_error / packet[IP]
+        sendp(response_packet, iface="eth0")  # Replace "eth0" with the appropriate network interface
+
 
 class PacketProcessorManager:
     def __init__(self):
@@ -117,10 +125,9 @@ class PacketProcessorManager:
                 if not processors:  # Remove priority if no processors left
                     del self.priority_processors[priority]
 
-    @staticmethod
     def process_packet(self, packet_data):
         incoming_packet = Ether(packet_data)
-        self.logger.info("Processing packet: %s", incoming_packet.summary())
+        print("Processing packet:", incoming_packet.summary())
 
         # Extract the payload from the Raw layer
         raw_layer = incoming_packet.getlayer(Raw)
@@ -137,11 +144,32 @@ class PacketProcessorManager:
 
         self._process_packet_processors(incoming_packet)
 
+    def _get_matched_rules(self, packet, payload):
+        matched_rules = []
+        # Implement your rule matching logic here
+        # Example: Iterate over a list of rules and check if the packet matches each rule's conditions
+        for rule in matched_rules:
+            if rule.matches(packet, payload):
+                matched_rules.append(rule)
+        return matched_rules
 
-class PacketProcessor(ABC):
-    @abstractmethod
-    def process(self, packet):
-        raise NotImplementedError("process() method must be implemented in subclasses.")
+    def _process_rule(self, rule, packet):
+        # Perform the specified action for the matched rule
+        if isinstance(rule.action, BlockAction):
+            print("Blocking packet:", packet.summary())
+            # Implement your code to block the packet
+        elif isinstance(rule.action, AllowAction):
+            print("Allowing packet:", packet.summary())
+            # Implement your code to allow the packet
+        elif isinstance(rule.action, LogAction):
+            print("Logging packet:", packet.summary())
+            # Implement your code to log the packet
+        else:
+            print("Unsupported action for rule:", rule)
+
+    def _process_packet_processors(self, packet):
+        for processor in self.processors:
+            processor.process(packet)
 
 
 class ICMPProcessor(PacketProcessor):
@@ -233,20 +261,14 @@ class MalwareDetectionProcessor(CustomPacketProcessor):
         return False
 
     def block_malicious_packet(self, packet):
-        # create logger
-        logger = logging.getLogger("MaliciousPacketLogger")
-        logger.setLevel(logging.INFO)
-
-        # create write file
-        file_handler = logging.FileHandler("malicious_packets.log")
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        file_handler.setFormatter(formatter)
-
-        # add log
-        logger.addHandler(file_handler)
-
-        # write ingo fоr block packege in log-file
-        logger.info("Malicious packet blocked: %s", packet.summary())
+        # Implement your logic for blocking a malicious packet
+        # Example: Drop the packet or send a response indicating malicious activity
+        print("Blocking malicious packet:", packet.summary())
+        # Add your code to block the packet here
+        # For example, you can use scapy to send an ICMP error message to the sender
+        icmp_error = ICMP(type=3, code=1)  # Destination Unreachable - Host Unreachable
+        response_packet = IP(src=packet[IP].dst, dst=packet[IP].src) / icmp_error / packet[IP]
+        sendp(response_packet, iface="eth0")  # Replace "eth0" with the appropriate network interface
 
 
 class TrafficBehaviorAnalysisProcessor(CustomPacketProcessor):
