@@ -53,7 +53,17 @@ Contributions to the Firewall System are welcome! If you find any issues or have
 
 ## License
 
-This project is licensed under the MIT License.
+Copyright © Aleksandr
+web - https://craxti.github.io/flask_site/
 
-    
-Feel free to customize and modify the README.md file according to your specific project requirements and information.
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the `GNU General Public License`_ for more details.
+
+
+.. _GNU General Public License: https://www.gnu.org/licenses/gpl-3.0.html
