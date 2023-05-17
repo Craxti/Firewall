@@ -1,5 +1,5 @@
 from src.firewall import Firewall
-from src.rule import FirewallRule
+from src.rule import FirewallRule, Rule, IPCondition, PortCondition, AndCondition, OrCondition, NotCondition
 from src.condition import IPCondition, PortCondition
 from src.action import BlockAction, AllowAction, LogAction, InterfaceBlockAction, RedirectAction
 from src.packet_processor import DynamicPacketProcessor, CustomPacketProcessor, MalwareDetectionProcessor, TrafficBehaviorAnalysisProcessor
@@ -36,6 +36,25 @@ if __name__ == "__main__":
     redirect_action = RedirectAction("192.168.1.10", 8080)
     redirect_rule = FirewallRule(redirect_condition, redirect_action)
     firewall.add_rule(redirect_rule)
+
+    # Create IP conditions
+    ip_condition_1 = IPCondition("192.168.1.1")
+    ip_condition_2 = IPCondition("192.168.1.2")
+    # Create port conditions
+    port_condition_1 = PortCondition(80)
+    port_condition_2 = PortCondition(443)
+    # Combine conditions using logical operators
+    combined_condition = AndCondition(ip_condition_1, port_condition_1)  # Match packets with IP 192.168.1.1 and port 80
+    or_condition = OrCondition(ip_condition_2, port_condition_2)  # Match packets with IP 192.168.1.2 or port 443
+    not_condition = NotCondition(ip_condition_1)  # Match packets that do not have IP 192.168.1.1
+    # Create actions
+    block_action = BlockAction()
+    allow_action = AllowAction()
+    log_action = LogAction("firewall.log")
+    # Create rules with the new composite conditions and actions
+    rule_1 = Rule(combined_condition, block_action)
+    rule_2 = Rule(or_condition, allow_action)
+    rule_3 = Rule(not_condition, log_action)
 
     # Create custom packet processors
     custom_packet_processor = CustomPacketProcessor()

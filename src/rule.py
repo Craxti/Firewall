@@ -14,6 +14,15 @@ class Condition(ABC):
         return OrCondition(self, other)
 
 
+class CompositeCondition(Condition):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    @abstractmethod
+    def matches(self, packet):
+        pass
+
+
 class Action(ABC):
     @abstractmethod
     def process(self, packet):
@@ -76,6 +85,14 @@ class OrCondition(Condition):
 
     def matches(self, packet):
         return self.condition1.matches(packet) or self.condition2.matches(packet)
+
+
+class NotCondition(Condition):
+    def __init__(self, condition):
+        self.condition = condition
+
+    def matches(self, packet):
+        return not self.condition.matches(packet)
 
 
 class AndAction(Action):
@@ -180,3 +197,16 @@ class CombinedAction(Action):
     def process(self, packet):
         for action in self.actions:
             action.process(packet)
+
+
+class Rule:
+    def __init__(self, condition, action):
+        self.condition = condition
+        self.action = action
+
+    def matches(self, packet):
+        return self.condition.matches(packet)
+
+    def process(self, packet):
+        self.action.process(packet)
+
