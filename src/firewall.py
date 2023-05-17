@@ -20,6 +20,7 @@ class Firewall:
         self.logger.addHandler(logging.StreamHandler())
 
         self.packet_count = 0
+        self.packet_types = defaultdict(int)
         self.start_time = time.time()
 
     def serialize(self, file_path):
@@ -129,6 +130,15 @@ class Firewall:
 
         self._process_packet_processors(incoming_packet)
 
+    def _get_packet_type(self, packet):
+        # Determine packet type based on available layers
+        if IP in packet:
+            return "IPv4"
+        elif IPv6 in packet:
+            return "IPv6"
+        else:
+            return "Unknown"
+
     def _get_matched_rules(self, incoming_packet):
         matched_rules = []
         for _, rule in self.rules:
@@ -143,5 +153,12 @@ class Firewall:
     def get_packet_count(self):
         return self.packet_count
 
+    def get_packet_types(self):
+        return dict(self.packet_types)
+
     def get_elapsed_time(self):
         return time.time() - self.start_time
+
+    def reset_statistics(self):
+        self.packet_count = 0
+        self.packet_types = defaultdict(int)
