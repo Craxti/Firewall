@@ -70,6 +70,7 @@ class IPRangeCondition(Condition):
     def __repr__(self):
         return f"IPRangeCondition(start_ip={self.start_ip}, end_ip={self.end_ip})"
 
+
 class SubnetCondition(Condition):
     def __init__(self, subnet):
         self.subnet = subnet
@@ -102,6 +103,7 @@ class PortCondition(Condition):
 
     def __repr__(self):
         return f"PortCondition(port={self.port})"
+
 
 class HeaderCondition(Condition):
     def __init__(self, header_name, header_value):
@@ -139,4 +141,3 @@ class MetadataCondition(Condition):
 
     def __repr__(self):
         return f"MetadataCondition(metadata_key={self.metadata_key}, metadata_value={self.metadata_value})"
-
