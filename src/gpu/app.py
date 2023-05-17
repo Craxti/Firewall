@@ -3,7 +3,7 @@ from flask import Flask, render_template, request
 app = Flask(__name__)
 
 
-# Определение маршрута для главной страницы
+# Defining a route for the home page
 @app.route('/')
 def home():
     return render_template('index.html')

@@ -112,14 +112,14 @@ class Firewall:
         self.logger.info("Processing packet: %s", incoming_packet.summary())
 
         if IP in incoming_packet:
-            # Обработка IPv4 пакетов
+            # Handling IPv4 packets
             matched_rules = self._get_matched_rules(incoming_packet)
             for rule in matched_rules:
                 self._process_rule(rule, incoming_packet)
                 if rule.action.stops_processing:
                     break
         elif IPv6 in incoming_packet:
-            # Обработка IPv6 пакетов
+            # Handling IPv6 Packets
             matched_rules = self._get_matched_rules(incoming_packet)
             for rule in matched_rules:
                 self._process_rule(rule, incoming_packet)
