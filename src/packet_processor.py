@@ -8,6 +8,7 @@ from scapy.layers.l2 import Ether
 from scapy.packet import Raw
 from scapy.sendrecv import sendp
 import asyncio
+import logging
 
 from src.action import BlockAction, AllowAction, LogAction
 
@@ -19,25 +20,28 @@ class PacketProcessor(ABC):
 
 
 class CustomPacketProcessor(PacketProcessor):
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+
     def process(self, packet):
-        print("Custom packet processing:")
-        print("Source MAC:", packet[Ether].src)
-        print("Destination MAC:", packet[Ether].dst)
+        self.logger.info("Custom packet processing:")
+        self.logger.info("Source MAC: %s", packet[Ether].src)
+        self.logger.info("Destination MAC: %s", packet[Ether].dst)
 
         if IP in packet:
             # IP Packet Handling
-            print("IP Packet:")
-            print("Source IP:", packet[IP].src)
-            print("Destination IP:", packet[IP].dst)
-            print(".")
+            self.logger.info("IP Packet:")
+            self.logger.info("Source IP: %s", packet[IP].src)
+            self.logger.info("Destination IP: %s", packet[IP].dst)
+            self.logger.info(".")
 
             if Raw in packet:
                 if b"malware" in packet[Raw].load:
-                    print("Detected malware traffic.")
+                    self.logger.info("Detected malware traffic.")
                 else:
-                    print("No malware detected.")
+                    self.logger.info("No malware detected.")
             else:
-                print("Packet does not contain Raw layer.")
+                self.logger.info("Packet does not contain Raw layer.")
 
         # Packet Processing Logic Example:
         # - If the package has a specific source and destination, send a new package
@@ -48,13 +52,15 @@ class CustomPacketProcessor(PacketProcessor):
         # - If a packet contains a specific sequence of bytes in the payload, block it
         if packet.haslayer(Raw):
             if b"malware" in packet[Raw].load:
-                print("Detected malware.")
+                self.logger.info("Detected malware.")
 
     @staticmethod
     def check_traffic_anomaly_condition(packet):
         payload_len = len(packet[Raw].load)
         if len(packet) > 1000 and TCP in packet and packet[TCP].flags == "S":
             print("Detected traffic anomaly.")
+            return True
+        return False
 
 
 class MyPacketProcessor(CustomPacketProcessor):
@@ -62,20 +68,26 @@ class MyPacketProcessor(CustomPacketProcessor):
         super().process(packet)
 
         if IP in packet:
-            # IP Packet Handling
             print("IP Packet:")
             print("Source IP:", packet[IP].src)
             print("Destination IP:", packet[IP].dst)
+            # IP Packet Handling
+            self.logger.info("IP Packet:")
+            self.logger.info("Source IP: %s", packet[IP].src)
+            self.logger.info("Destination IP: %s", packet[IP].dst)
         else:
             print("Packet does not contain IP layer.")
+            self.logger.info("Packet does not contain IP layer.")
 
         if Raw in packet:
             if b"malware" in packet[Raw].load:
                 print("Detected malware traffic.")
+                self.logger.info("Detected malware traffic.")
             else:
-                print("No malware detected.")
+                self.logger.info("No malware detected.")
         else:
-            print("Packet does not contain Raw layer.")
+
+            self.logger.info("Packet does not contain Raw layer.")
 
         if packet[IP].src == "192.168.1.10" and packet[IP].dst == "192.168.1.20":
             new_packet = Ether(src=packet[Ether].dst, dst=packet[Ether].src) / IP(src=packet[IP].dst, dst=packet[IP].src) / TCP(sport=packet[TCP].dport, dport=packet[TCP].sport) / Raw(load="Modified payload")
@@ -83,11 +95,12 @@ class MyPacketProcessor(CustomPacketProcessor):
 
         if packet.haslayer(Raw):
             if b"malware" in packet[Raw].load:
-                print("Detected malware.")
+                self.logger.info("Detected malware.")
 
     def block_malicious_packet(self, packet):
         # Implement your logic for blocking a malicious packet
         print("Blocking malicious packet:", packet.summary())
+        self.logger.info("Blocking malicious packet: %s", packet.summary())
 
         # Drop the packet
         # Example: You can simply return here to drop the packet
@@ -103,6 +116,7 @@ class PacketProcessorManager:
     def __init__(self):
         self.processors = []
         self.priority_processors = {}
+        self.logger = logging.getLogger(__name__)
 
     def register_processor(self, processor, priority=0):
         self.processors.append(processor)
@@ -129,6 +143,7 @@ class PacketProcessorManager:
     def process_packet(self, packet_data):
         incoming_packet = Ether(packet_data)
         print("Processing packet:", incoming_packet.summary())
+        self.logger.info("Processing packet: %s", incoming_packet.summary())
 
         # Extract the payload from the Raw layer
         raw_layer = incoming_packet.getlayer(Raw)
@@ -158,15 +173,19 @@ class PacketProcessorManager:
         # Perform the specified action for the matched rule
         if isinstance(rule.action, BlockAction):
             print("Blocking packet:", packet.summary())
+            self.logger.info("Blocking packet: %s", packet.summary())
             # Implement your code to block the packet
         elif isinstance(rule.action, AllowAction):
             print("Allowing packet:", packet.summary())
+            self.logger.info("Allowing packet: %s", packet.summary())
             # Implement your code to allow the packet
         elif isinstance(rule.action, LogAction):
             print("Logging packet:", packet.summary())
+            self.logger.info("Logging packet: %s", packet.summary())
             # Implement your code to log the packet
         else:
             print("Unsupported action for rule:", rule)
+            self.logger.warning("Unsupported action for rule: %s", rule)
 
     def _process_packet_processors(self, packet):
         for processor in self.processors:
@@ -177,7 +196,7 @@ class ICMPProcessor(PacketProcessor):
     def process(self, packet):
         icmp = packet.getlayer(ICMP)
         if icmp:
-            print("ICMP packet:", packet.summary())
+            logging.info("ICMP packet: %s", packet.summary())
         else:
             super().process(packet)
 
@@ -186,7 +205,7 @@ class TCPProcessor(PacketProcessor):
     def process(self, packet):
         tcp = packet.getlayer(TCP)
         if tcp:
-            print("TCP packet:", packet.summary())
+            logging.info("TCP packet: %s", packet.summary())
         else:
             super().process(packet)
 
@@ -195,45 +214,45 @@ class UDPProcessor(CustomPacketProcessor):
     def process(self, packet):
         udp = packet.getlayer(UDP)
         if udp:
-            print("UDP packet:", packet.summary())
+            logging.info("UDP packet: %s", packet.summary())
         else:
-            print("Not a UDP packet.")
+            logging.info("Not a UDP packet.")
 
 
 class ARPProcessor(CustomPacketProcessor):
     def process(self, packet):
         arp = packet.getlayer(ARP)
         if arp:
-            print("ARP packet:", packet.summary())
+            logging.info("ARP packet: %s", packet.summary())
         else:
-            print("Not an ARP packet.")
+            logging.info("Not an ARP packet.")
 
 
 class ICMPv6Processor(CustomPacketProcessor):
     def process(self, packet):
         icmpv6 = packet.getlayer(ICMPv6ND_NS)
         if icmpv6:
-            print("ICMPv6 packet:", packet.summary())
+            logging.info("ICMPv6 packet: %s", packet.summary())
         else:
-            print("Not an ICMPv6 packet.")
+            logging.info("Not an ICMPv6 packet.")
 
 
 class DNSProcessor(CustomPacketProcessor):
     def process(self, packet):
         dns = packet.getlayer(DNS)
         if dns:
-            print("DNS packet:", packet.summary())
+            logging.info("DNS packet: %s", packet.summary())
         else:
-            print("Not a DNS packet.")
+            logging.info("Not a DNS packet.")
 
 
 class HTTPProcessor(CustomPacketProcessor):
     def process(self, packet):
         http = packet.getlayer(HTTP)
         if http:
-            print("HTTP packet:", packet.summary())
+            logging.info("HTTP packet: %s", packet.summary())
         else:
-            print("Not an HTTP packet.")
+            logging.info("Not an HTTP packet.")
 
 
 class MalwareDetectionProcessor(CustomPacketProcessor):
@@ -252,7 +271,7 @@ class MalwareDetectionProcessor(CustomPacketProcessor):
         if self.is_malware(packet):
             self.block_malicious_packet(packet)
         else:
-            print("No malware detected.")
+            self.logger.info("No malware detected.")
 
     def is_malware(self, packet):
         if Raw in packet:
@@ -264,7 +283,7 @@ class MalwareDetectionProcessor(CustomPacketProcessor):
     def block_malicious_packet(self, packet):
         # Implement your logic for blocking a malicious packet
         # Example: Drop the packet or send a response indicating malicious activity
-        print("Blocking malicious packet:", packet.summary())
+        self.logger.info("Blocking malicious packet: %s", packet.summary())
         # Add your code to block the packet here
         # For example, you can use scapy to send an ICMP error message to the sender
         icmp_error = ICMP(type=3, code=1)  # Destination Unreachable - Host Unreachable
@@ -275,9 +294,9 @@ class MalwareDetectionProcessor(CustomPacketProcessor):
 class TrafficBehaviorAnalysisProcessor(CustomPacketProcessor):
     def process(self, packet):
         if self.has_traffic_anomaly(packet):
-            print("Traffic behavior anomaly detected:", packet.summary())
+            self.logger.info("Traffic behavior anomaly detected: %s", packet.summary())
         else:
-            print("No traffic behavior anomaly detected.")
+            self.logger.info("No traffic behavior anomaly detected.")
 
     def has_traffic_anomaly(self, packet):
         # Implement your traffic behavior analysis logic here
@@ -304,8 +323,10 @@ class PacketProcessorObserver:
 
 class DynamicPacketProcessor(CustomPacketProcessor):
     def __init__(self):
+        super().__init__()
         self.processors = []
         self.observers = []
+        self.logger = logging.getLogger(__name__)
 
     def register_processor(self, processor):
         self.processors.append(processor)
@@ -353,7 +374,7 @@ class DynamicPacketProcessor(CustomPacketProcessor):
 
     async def process_packet(self, packet_data):
         incoming_packet = Ether(packet_data)
-        print("Processing packet:", incoming_packet.summary())
+        self.logger.info("Processing packet: %s", incoming_packet.summary())
 
         # Extract the payload from the Raw layer
         raw_layer = incoming_packet.getlayer(Raw)
@@ -373,16 +394,16 @@ class DynamicPacketProcessor(CustomPacketProcessor):
     async def _process_rule(self, rule, packet):
         # Perform the specified action for the matched rule
         if isinstance(rule.action, BlockAction):
-            print("Blocking packet:", packet.summary())
+            self.logger.info("Blocking packet: %s", packet.summary())
             # Implement your code to block the packet
         elif isinstance(rule.action, AllowAction):
-            print("Allowing packet:", packet.summary())
+            self.logger.info("Allowing packet: %s", packet.summary())
             # Implement your code to allow the packet
         elif isinstance(rule.action, LogAction):
-            print("Logging packet:", packet.summary())
+            self.logger.info("Logging packet: %s", packet.summary())
             # Implement your code to log the packet
         else:
-            print("Unsupported action for rule:", rule)
+            self.logger.info("Unsupported action for rule: %s", rule)
 
     def _get_matched_rules(self, packet, payload):
         matched_rules = []
