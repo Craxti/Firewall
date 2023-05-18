@@ -36,11 +36,12 @@ class Action(ABC):
 
 
 class FirewallRule:
-    def __init__(self, condition, action,  priority=0):
+    def __init__(self, condition, action, priority=0):
         self.condition = condition
         self.action = action
         self.priority = priority
         self.time_ranges = []
+        self.match_cache = {}  # Cache for matches()
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -63,7 +64,8 @@ class FirewallRule:
             else:
                 return False
 
-        return self.condition.matches(packet)
+        result = self.condition.matches(packet)
+        return result
 
     def process(self, packet):
         self.action.process(packet)
@@ -209,4 +211,3 @@ class Rule:
 
     def process(self, packet):
         self.action.process(packet)
-
