@@ -40,9 +40,9 @@ class QoSMonitor:
         sniff(prn=self.process_packet)
 
     def detect_data_type(self, packet):
-        if packet.haslayer("TCP"):
+        if packet.haslayer(TCP):
             return "TCP"
-        elif packet.haslayer("UDP"):
+        elif packet.haslayer(UDP):
             return "UDP"
         else:
             return "Unknown"
