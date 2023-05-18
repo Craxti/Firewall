@@ -25,7 +25,3 @@ scapy = "^2.5.0"
 Werkzeug = "^2.3.4"
 scikit-learn = "^1.2.2"
 
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
