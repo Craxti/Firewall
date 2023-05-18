@@ -4,9 +4,18 @@ from scapy.layers.inet6 import IPv6
 import heapq
 import pickle
 import logging
+from collections import defaultdict
+import time
 from src.condition import IPCondition
 from src.action import AllowAction, BlockAction
 from src.rule import FirewallRule
+
+
+class Node:
+    def __init__(self, rule):
+        self.rule = rule
+        self.left = None
+        self.right = None
 
 
 class Firewall:
@@ -18,6 +27,9 @@ class Firewall:
         self.logger = logging.getLogger("Firewall")
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler())
+        self.cache = {}
+        self._rule_cache = {}
+        self.root = None
 
         self.packet_count = 0
         self.packet_types = defaultdict(int)
@@ -41,12 +53,30 @@ class Firewall:
 
     def add_rule(self, rule, priority=0):
         rule.priority = priority
-        heapq.heappush(self.rules, (-rule.priority, rule))
+        node = Node(rule)
+        if self.root is None:
+            self.root = node
+        else:
+            self._insert_node(self.root, node)
+        self.cache.clear()
+
+    def _insert_node(self, root, node):
+        if node.rule.priority > root.rule.priority:
+            if root.right is None:
+                root.right = node
+            else:
+                self._insert_node(root.right, node)
+        else:
+            if root.left is None:
+                root.left = node
+            else:
+                self._insert_node(root.left, node)
 
     def remove_rule(self, rule):
         if rule in self.rules:
             self.rules.remove(rule)
             heapq.heapify(self.rules)
+            self.cache.clear()
 
     def clear_rules(self):
         self.rules = []
@@ -79,7 +109,20 @@ class Firewall:
 
     def enable_firewall(self):
         # Reload the rules from the allowlist and blocklist
+        self.root = None
+        self._add_rules_from_lists()
+        self.cache.clear()
         self.rules = self._generate_allowlist_rules() + self._generate_blocklist_rules()
+
+    def _add_rules_from_lists(self):
+        self._add_rules_from_list(self.allowlist, AllowAction())
+        self._add_rules_from_list(self.blocklist, BlockAction())
+
+    def _add_rules_from_list(self, ip_list, action):
+        for ip_address in ip_list:
+            condition = IPCondition(ip_address)
+            rule = FirewallRule(condition, action)
+            self.add_rule(rule)
 
     def _generate_allowlist_rules(self):
         allowlist_rules = []
@@ -99,8 +142,7 @@ class Firewall:
             blocklist_rules.append(blocklist_rule)
         return blocklist_rules
 
-    @staticmethod
-    def _process_rule(rule, incoming_packet):
+    def _process_rule(self, rule, incoming_packet):
         rule.process(incoming_packet)
 
     def _process_packet_processors(self, incoming_packet):
@@ -113,14 +155,18 @@ class Firewall:
 
         if IP in incoming_packet:
             # Handling IPv4 packets
-            matched_rules = self._get_matched_rules(incoming_packet)
+            packet_type = self._get_packet_type(incoming_packet)
+            matched_rules = self._get_matched_rules(incoming_packet, packet_type)
+
             for rule in matched_rules:
                 self._process_rule(rule, incoming_packet)
                 if rule.action.stops_processing:
                     break
         elif IPv6 in incoming_packet:
             # Handling IPv6 Packets
-            matched_rules = self._get_matched_rules(incoming_packet)
+            packet_type = self._get_packet_type(incoming_packet)
+            matched_rules = self._get_matched_rules(incoming_packet, packet_type)
+
             for rule in matched_rules:
                 self._process_rule(rule, incoming_packet)
                 if rule.action.stops_processing:
@@ -130,6 +176,32 @@ class Firewall:
 
         self._process_packet_processors(incoming_packet)
 
+    def _get_matched_rules(self, incoming_packet, packet_type):
+        matched_rules = []
+        if packet_type in self._rule_cache:
+            # If the packet type is cached, retrieve the matched rules from the cache
+            matched_rules = self._rule_cache[packet_type]
+        else:
+            # If the packet type is not cached, find the matched rules and cache them
+            self._get_matched_rules_recursive(self.root, incoming_packet, packet_type, matched_rules)
+            self._rule_cache[packet_type] = matched_rules
+
+        return matched_rules
+
+    def _get_matched_rules_recursive(self, node, packet, packet_type, matched_rules):
+        if node is None:
+            return
+
+        if node.rule is not None and node.rule.matches(packet):
+            matched_rules.append(node.rule)
+
+        if packet_type == "IPv4" and node.left is not None:
+            self._get_matched_rules_recursive(node.left, packet, packet_type, matched_rules)
+            self._get_matched_rules_recursive(node.right, packet, packet_type, matched_rules)
+        elif packet_type == "IPv6" and node.right is not None:
+            self._get_matched_rules_recursive(node.right, packet, packet_type, matched_rules)
+            self._get_matched_rules_recursive(node.left, packet, packet_type, matched_rules)
+
     def _get_packet_type(self, packet):
         # Determine packet type based on available layers
         if IP in packet:
@@ -138,14 +210,6 @@ class Firewall:
             return "IPv6"
         else:
             return "Unknown"
-
-    def _get_matched_rules(self, incoming_packet):
-        matched_rules = []
-        for _, rule in self.rules:
-            if rule.matches(incoming_packet):
-                self.logger.info("Matched rule: %s", rule)
-                matched_rules.append(rule)
-        return matched_rules
 
     def start_sniffing(self):
         sniff(prn=self.process_packet)
