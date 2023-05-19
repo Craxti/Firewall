@@ -1,5 +1,5 @@
 from scapy.all import *
-from scapy.layers.inet import IP
+from scapy.layers.inet import IP, Ether
 from scapy.layers.inet6 import IPv6
 import hashlib
 import heapq
@@ -247,10 +247,20 @@ class Firewall:
         if node is None:
             return
 
-        if node.rule is not None and node.rule.matches(packet):
-            matched_rules.append(node.rule)
+        if packet_type == "Ethernet":
+            # Обработка пакетов Ethernet
+            if node.rule is not None and isinstance(packet, Ether) and node.rule.matches(packet):
+                matched_rules.append(node.rule)
+        elif packet_type == "IPv4":
+            # Обработка пакетов IPv4
+            if node.rule is not None and isinstance(packet, IP) and node.rule.matches(packet):
+                matched_rules.append(node.rule)
+        elif packet_type == "IPv6":
+            # Обработка пакетов IPv6
+            if node.rule is not None and isinstance(packet, IPv6) and node.rule.matches(packet):
+                matched_rules.append(node.rule)
 
-        if packet_type == "IPv4" and node.left is not None:
+        if packet_type in ["Ethernet", "IPv4"] and node.left is not None:
             self._get_matched_rules_recursive(node.left, packet, packet_type, matched_rules)
             self._get_matched_rules_recursive(node.right, packet, packet_type, matched_rules)
         elif packet_type == "IPv6" and node.right is not None:

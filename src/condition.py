@@ -1,12 +1,15 @@
 from scapy.layers.inet import IP, TCP, UDP
-from src.rule import Condition
+from functools import lru_cache
 import datetime
+import logging
+from src.rule import Condition
 
 
 class IPCondition(Condition):
     def __init__(self, ip):
         self.ip = ip
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         ip_layer = packet.getlayer(IP)
         if ip_layer:
@@ -23,6 +26,7 @@ class AndCondition(Condition):
         self.condition1 = condition1
         self.condition2 = condition2
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         return self.condition1.matches(packet) and self.condition2.matches(packet)
 
@@ -35,6 +39,7 @@ class OrCondition(Condition):
         self.condition1 = condition1
         self.condition2 = condition2
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         return self.condition1.matches(packet) or self.condition2.matches(packet)
 
@@ -60,10 +65,13 @@ class IPRangeCondition(Condition):
         self.start_ip = start_ip
         self.end_ip = end_ip
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         try:
             ip = IP(packet.payload)
-            return IP(self.start_ip) <= ip.src <= IP(self.end_ip) or IP(self.start_ip) <= ip.dst <= IP(self.end_ip)
+            src_ip = IP(self.start_ip)
+            dst_ip = IP(self.end_ip)
+            return src_ip <= ip.src <= dst_ip or src_ip <= ip.dst <= dst_ip
         except (IndexError, ValueError):
             return False
 
@@ -76,10 +84,12 @@ class SubnetCondition(Condition):
         self.subnet = subnet
         self.subnet_ip = IP(subnet)
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         try:
             ip = IP(packet.load)
-            return ip.src in IP(self.subnet) or ip.dst in IP(self.subnet)
+            subnet_ip = IP(self.subnet)
+            return ip.src in subnet_ip or ip.dst in subnet_ip
         except (IndexError, ValueError):
             return False
 
@@ -91,6 +101,7 @@ class PortCondition(Condition):
     def __init__(self, port):
         self.port = port
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         tcp_layer = packet.getlayer(TCP)
         if tcp_layer:
@@ -111,6 +122,7 @@ class HeaderCondition(Condition):
         self.header_name = header_name
         self.header_value = header_value
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         # Check if the specified header is present and has the expected value
         return self.header_name in packet and packet[self.header_name] == self.header_value
@@ -120,12 +132,16 @@ class HeaderCondition(Condition):
 
 
 class ContentCondition(Condition):
+
+    logger = logging.getLogger("ContentCondition")
+
     def __init__(self, content):
         self.content = content
 
+    @lru_cache(maxsize=None)  # cashed result
     def matches(self, packet):
         # Check if the packet payload contains the specified content
-        print(self.content in packet.payload)
+        self.logger.info(self.content in packet.payload)
         return packet.payload.find(self.content) != -1
 
     def __repr__(self):
