@@ -125,7 +125,8 @@ class ContentCondition(Condition):
 
     def matches(self, packet):
         # Check if the packet payload contains the specified content
-        return self.content in packet.payload
+        print(self.content in packet.payload)
+        return packet.payload.find(self.content) != -1
 
     def __repr__(self):
         return f"ContentCondition(content={self.content})"
