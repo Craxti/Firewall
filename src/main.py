@@ -2,7 +2,7 @@ import asyncio
 import logging
 from src.firewall import Firewall
 from src.rule import FirewallRule, Rule, IPCondition, PortCondition, AndCondition, OrCondition, NotCondition
-from src.condition import IPCondition, PortCondition
+from src.condition import IPCondition, PortCondition, ContentCondition
 from src.action import BlockAction, AllowAction, LogAction, InterfaceBlockAction, RedirectAction
 from src.packet_processor import DynamicPacketProcessor, CustomPacketProcessor, MalwareDetectionProcessor, TrafficBehaviorAnalysisProcessor
 
