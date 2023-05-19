@@ -1,6 +1,7 @@
 from scapy.all import *
 from scapy.layers.inet import IP
 from scapy.layers.inet6 import IPv6
+import hashlib
 import heapq
 import pickle
 import logging
@@ -223,6 +224,12 @@ class Firewall:
         self._process_packet_processors(incoming_packet)
 
     def _get_matched_rules(self, incoming_packet, packet_type):
+        packet_hash = self._get_packet_hash(incoming_packet)
+
+        if packet_hash in self.cache:
+            # If the packet hash is cached, retrieve the matched rules from the cache
+            return self.cache[packet_hash]
+
         matched_rules = []
         if packet_type in self._rule_cache:
             # If the packet type is cached, retrieve the matched rules from the cache
@@ -231,6 +238,8 @@ class Firewall:
             # If the packet type is not cached, find the matched rules and cache them
             self._get_matched_rules_recursive(self.root, incoming_packet, packet_type, matched_rules)
             self._rule_cache[packet_type] = matched_rules
+
+        self.cache[packet_hash] = matched_rules
 
         return matched_rules
 
@@ -256,6 +265,11 @@ class Firewall:
             return "IPv6"
         else:
             return "Unknown"
+
+    def _get_packet_hash(self, packet):
+        packet_bytes = bytes(packet)
+        sha256_hash = hashlib.sha256(packet_bytes)
+        return sha256_hash.hexdigest()
 
     def start_sniffing(self):
         sniff(prn=self.process_packet)
