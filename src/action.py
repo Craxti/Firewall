@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
 from cryptography.fernet import Fernet
+import logging
 
 
 class Action(ABC):
@@ -68,15 +69,23 @@ class RedirectAction(Action):
 
 
 class ExecuteScriptAction(Action):
-    def __init__(self, script_path):
+    def __init__(self, script_path, arguments=None):
         self.script_path = script_path
+        self.arguments = arguments or []
+
+    def set_script_path(self, script_path):
+        self.script_path = script_path
+
+    def set_arguments(self, arguments):
+        self.arguments = arguments or []
 
     def process(self, incoming_packet):
         # Execute a custom script or command with the packet data
         # Example: Execute a Python script with the packet data as an argument
         try:
             import subprocess
-            result = subprocess.run(['python', self.script_path, str(incoming_packet)], capture_output=True, text=True)
+            command = ['python', self.script_path, str(incoming_packet)] + self.arguments
+            result = subprocess.run(command, capture_output=True, text=True)
             output = result.stdout.strip()
             if output:
                 print("Script output:", output)
