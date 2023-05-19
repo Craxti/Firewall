@@ -5,7 +5,7 @@ import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from scapy.all import *
-from scapy.layers.inet import IP, TCP
+from scapy.layers.inet import IP, TCP, Ether
 from cryptography.fernet import Fernet
 
 
@@ -128,8 +128,9 @@ class EncryptionAction(Action):
             # Encrypt the packet payload or specific fields using the encryption key
             # Example using Fernet symmetric encryption
             cipher = Fernet(self.encryption_key)
-            encrypted_payload = cipher.encrypt(incoming_packet.payload)
-            incoming_packet.payload = encrypted_payload
+            encrypted_payload = cipher.encrypt(bytes(incoming_packet))
+            encrypted_packet = Ether() / encrypted_payload
+            incoming_packet.payload = encrypted_packet
 
 
 class DecryptionAction(Action):
@@ -142,8 +143,9 @@ class DecryptionAction(Action):
             # Decrypt the packet payload or specific fields using the decryption key
             # Example using Fernet symmetric decryption
             cipher = Fernet(self.decryption_key)
-            decrypted_payload = cipher.decrypt(incoming_packet.payload)
-            incoming_packet.payload = decrypted_payload
+            decrypted_payload = cipher.decrypt(bytes(incoming_packet))
+            decrypted_packet = Ether(decrypted_payload)
+            incoming_packet.payload = decrypted_packet
 
 
 class ModifyHeadersAction(Action):
