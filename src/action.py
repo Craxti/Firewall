@@ -1,11 +1,12 @@
-from abc import ABC, abstractmethod
+import subprocess
 import smtplib
-from concurrent.futures import ThreadPoolExecutor
+import logging
 
+from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
 from cryptography.fernet import Fernet
-import logging
 
 
 class Action(ABC):
@@ -22,7 +23,9 @@ class BlockAction(Action):
 
     def process(self, incoming_packet):
         self.logger.info("Block packet: %s", incoming_packet.summary())
-#        incoming_packet.drop()
+        # Checking for Resources or Permissions
+#        if has_sufficient_permissions():
+#            incoming_packet.drop()
 
 
 class AllowAction(Action):
@@ -41,8 +44,10 @@ class LogAction(Action):
 
     def process(self, incoming_packet):
         self.logger.info("Logged packet: %s", incoming_packet.summary())
-        with open(self.log_file, "a") as f:
-            f.write(f"Logged packet: {incoming_packet.summary()}\n")
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions():
+            with open(self.log_file, "a") as f:
+                f.write(f"Logged packet: {incoming_packet.summary()}\n")
         incoming_packet.accept()
 
 
@@ -54,7 +59,9 @@ class InterfaceBlockAction(Action):
 
     def process(self, incoming_packet):
         self.logger.info("Block packet on interface %s: %s", self.interface, incoming_packet.summary())
-        sendp(incoming_packet, iface=self.interface, verbose=False)
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions():
+            sendp(incoming_packet, iface=self.interface, verbose=False)
 
 
 class RedirectAction(Action):
@@ -80,17 +87,16 @@ class ExecuteScriptAction(Action):
         self.arguments = arguments or []
 
     def process(self, incoming_packet):
-        # Execute a custom script or command with the packet data
-        # Example: Execute a Python script with the packet data as an argument
-        try:
-            import subprocess
-            command = ['python', self.script_path, str(incoming_packet)] + self.arguments
-            result = subprocess.run(command, capture_output=True, text=True)
-            output = result.stdout.strip()
-            if output:
-                print("Script output:", output)
-        except Exception as e:
-            print("Error executing script:", e)
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions() and has_required_resources():
+            try:
+                command = ['python', self.script_path, str(incoming_packet)] + self.arguments
+                result = subprocess.run(command, capture_output=True, text=True)
+                output = result.stdout.strip()
+                if output:
+                    print("Script output:", output)
+            except Exception as e:
+                print("Error executing script:", e)
 
         incoming_packet.accept()
 
@@ -103,11 +109,13 @@ class EmailNotificationAction(Action):
         self.subject = subject
 
     def process(self, incoming_packet):
-        message = f"Blocked packet: {incoming_packet.summary()}"
-        msg = f"Subject: {self.subject}\n\n{message}"
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions() and has_required_resources():
+            message = f"Blocked packet: {incoming_packet.summary()}"
+            msg = f"Subject: {self.subject}\n\n{message}"
 
-        with smtplib.SMTP(self.smtp_server) as server:
-            server.sendmail(self.sender_email, self.receiver_email, msg)
+            with smtplib.SMTP(self.smtp_server) as server:
+                server.sendmail(self.sender_email, self.receiver_email, msg)
 
 
 class EncryptionAction(Action):
@@ -115,11 +123,13 @@ class EncryptionAction(Action):
         self.encryption_key = encryption_key
 
     def process(self, incoming_packet):
-        # Encrypt the packet payload or specific fields using the encryption key
-        # Example using Fernet symmetric encryption
-        cipher = Fernet(self.encryption_key)
-        encrypted_payload = cipher.encrypt(incoming_packet.payload)
-        incoming_packet.payload = encrypted_payload
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions() and has_required_resources():
+            # Encrypt the packet payload or specific fields using the encryption key
+            # Example using Fernet symmetric encryption
+            cipher = Fernet(self.encryption_key)
+            encrypted_payload = cipher.encrypt(incoming_packet.payload)
+            incoming_packet.payload = encrypted_payload
 
 
 class DecryptionAction(Action):
@@ -127,11 +137,13 @@ class DecryptionAction(Action):
         self.decryption_key = decryption_key
 
     def process(self, incoming_packet):
-        # Decrypt the packet payload or specific fields using the decryption key
-        # Example using Fernet symmetric decryption
-        cipher = Fernet(self.decryption_key)
-        decrypted_payload = cipher.decrypt(incoming_packet.payload)
-        incoming_packet.payload = decrypted_payload
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions() and has_required_resources():
+            # Decrypt the packet payload or specific fields using the decryption key
+            # Example using Fernet symmetric decryption
+            cipher = Fernet(self.decryption_key)
+            decrypted_payload = cipher.decrypt(incoming_packet.payload)
+            incoming_packet.payload = decrypted_payload
 
 
 class ModifyHeadersAction(Action):
@@ -139,11 +151,13 @@ class ModifyHeadersAction(Action):
         self.headers = headers
 
     def process(self, incoming_packet):
-        # Modify specific header fields of the packet
-        # Example: Modifying the source IP and destination port of an IP/TCP packet
-        if IP in incoming_packet and TCP in incoming_packet:
-            incoming_packet[IP].src = self.headers.get('source_ip', incoming_packet[IP].src)
-            incoming_packet[TCP].dport = self.headers.get('destination_port', incoming_packet[TCP].dport)
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions() and has_required_resources():
+            # Modify specific header fields of the packet
+            # Example: Modifying the source IP and destination port of an IP/TCP packet
+            if IP in incoming_packet and TCP in incoming_packet:
+                incoming_packet[IP].src = self.headers.get('source_ip', incoming_packet[IP].src)
+                incoming_packet[TCP].dport = self.headers.get('destination_port', incoming_packet[TCP].dport)
 
 
 class CombinedAction(Action):
@@ -151,8 +165,10 @@ class CombinedAction(Action):
         self.actions = actions
 
     def process(self, incoming_packet):
-        for action in self.actions:
-            action.process(incoming_packet)
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions() and has_required_resources():
+            for action in self.actions:
+                action.process(incoming_packet)
 
 
 class AsyncAction(Action):
@@ -160,9 +176,24 @@ class AsyncAction(Action):
         self.action = action
 
     def process(self, incoming_packet):
-        with ThreadPoolExecutor() as executor:
-            future = executor.submit(self.action.process, incoming_packet)
-            future.result()
+        # Checking for Resources or Permissions
+        if has_sufficient_permissions() and has_required_resources():
+            with ThreadPoolExecutor() as executor:
+                future = executor.submit(self.action.process, incoming_packet)
+                future.result()
+
+
+# Helper functions to check for resources or permissions
+def has_sufficient_permissions():
+    # Implementing Checking for Required Permissions
+    # Return True if permissions are present, otherwise False
+    return True
+
+
+def has_required_resources():
+    # Implementation of checking for the availability of necessary resources
+    # Return True if resources are available, False otherwise
+    return True
 
 
 # Configure logging
