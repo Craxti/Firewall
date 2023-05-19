@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 import hashlib
+from numba import jit
 
 
 class Condition(ABC):
@@ -89,6 +90,7 @@ class AndCondition(Condition):
         self.condition1 = condition1
         self.condition2 = condition2
 
+    @jit(nopython=True)
     def matches(self, packet):
         return self.condition1.matches(packet) and self.condition2.matches(packet)
 
@@ -98,6 +100,7 @@ class OrCondition(Condition):
         self.condition1 = condition1
         self.condition2 = condition2
 
+    @jit(nopython=True)
     def matches(self, packet):
         return self.condition1.matches(packet) or self.condition2.matches(packet)
 
@@ -106,6 +109,7 @@ class NotCondition(Condition):
     def __init__(self, condition):
         self.condition = condition
 
+    @jit(nopython=True)
     def matches(self, packet):
         return not self.condition.matches(packet)
 
@@ -136,6 +140,7 @@ class IPCondition(Condition):
     def __init__(self, ip_address):
         self.ip_address = ip_address
 
+    @jit(nopython=True)
     def matches(self, packet):
         return packet.source_ip == self.ip_address or packet.destination_ip == self.ip_address
 
@@ -144,6 +149,7 @@ class PortCondition(Condition):
     def __init__(self, port):
         self.port = port
 
+    @jit(nopython=True)
     def matches(self, packet):
         return packet.source_port == self.port or packet.destination_port == self.port
 
@@ -152,6 +158,7 @@ class ProtocolCondition(Condition):
     def __init__(self, protocol):
         self.protocol = protocol
 
+    @jit(nopython=True)
     def matches(self, packet):
         return packet.protocol == self.protocol
 
@@ -160,6 +167,7 @@ class PayloadContentCondition(Condition):
     def __init__(self, content):
         self.content = content
 
+    @jit(nopython=True)
     def matches(self, packet):
         return self.content in packet.payload.decode('utf-8')
 
