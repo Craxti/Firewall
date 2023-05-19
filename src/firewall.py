@@ -28,6 +28,7 @@ class Firewall:
         self.logger.setLevel(logging.INFO)
         self.logger.addHandler(logging.StreamHandler())
         self.cache = {}
+        self.rule_index = {}
         self._rule_cache = {}
         self.root = None
 
@@ -58,6 +59,7 @@ class Firewall:
             self.root = node
         else:
             self._insert_node(self.root, node)
+        self._update_rule_index(rule)
         self.cache.clear()
 
     def _insert_node(self, root, node):
@@ -72,14 +74,52 @@ class Firewall:
             else:
                 self._insert_node(root.left, node)
 
+    def _update_rule_index(self, rule):
+        packet_characteristics = self._get_packet_characteristics(rule.condition)
+        for characteristic in packet_characteristics:
+            if characteristic not in self.rule_index:
+                self.rule_index[characteristic] = []
+            self.rule_index[characteristic].append(rule)
+
     def remove_rule(self, rule):
         if rule in self.rules:
             self.rules.remove(rule)
             heapq.heapify(self.rules)
             self.cache.clear()
 
+    def _get_packet_characteristics(self, packet):
+        characteristics = {}
+
+        if isinstance(packet, IP):
+            characteristics['source_ip'] = packet.src
+            characteristics['destination_ip'] = packet.dst
+            characteristics['source_port'] = packet.sport
+            characteristics['destination_port'] = packet.dport
+            characteristics['protocol'] = packet.proto
+        elif isinstance(packet, IPv6):
+            characteristics['source_ip'] = packet.src
+            characteristics['destination_ip'] = packet.dst
+            characteristics['source_port'] = packet.sport
+            characteristics['destination_port'] = packet.dport
+            characteristics['protocol'] = packet.nh
+
+        return characteristics
+
+    def _add_rule_to_index(self, condition, action):
+        if condition in self.rule_index:
+            self.rule_index[condition].append(action)
+        else:
+            self.rule_index[condition] = [action]
+
+    def _remove_rule_from_index(self, rule):
+        packet_characteristics = self._get_packet_characteristics(rule.condition)
+        for characteristic in packet_characteristics:
+            if characteristic in self.rule_index:
+                self.rule_index[characteristic].remove(rule)
+
     def clear_rules(self):
         self.rules = []
+        self.rule_index = {}
 
     def add_packet_processor(self, packet_processor):
         self.packet_processors.append(packet_processor)
@@ -113,6 +153,7 @@ class Firewall:
         self._add_rules_from_lists()
         self.cache.clear()
         self.rules = self._generate_allowlist_rules() + self._generate_blocklist_rules()
+        self._rebuild_rule_index()  # Rebuild rule index with updated rules
 
     def _add_rules_from_lists(self):
         self._add_rules_from_list(self.allowlist, AllowAction())
@@ -141,6 +182,11 @@ class Firewall:
             blocklist_rule = FirewallRule(block_condition, block_action)
             blocklist_rules.append(blocklist_rule)
         return blocklist_rules
+
+    def _rebuild_rule_index(self):
+        self.rule_index = {}
+        for rule in self.rules:
+            self._update_rule_index(rule)
 
     def _process_rule(self, rule, incoming_packet):
         rule.process(incoming_packet)
