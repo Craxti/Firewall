@@ -3,8 +3,9 @@ import logging
 from src.firewall import Firewall
 from src.rule import FirewallRule, Rule, IPCondition, PortCondition, AndCondition, OrCondition, NotCondition
 from src.condition import IPCondition, PortCondition, ContentCondition
-from src.action import BlockAction, AllowAction, LogAction, InterfaceBlockAction, RedirectAction
-from src.packet_processor import DynamicPacketProcessor, CustomPacketProcessor, MalwareDetectionProcessor, TrafficBehaviorAnalysisProcessor
+from src.action import BlockAction, AllowAction, LogAction, InterfaceBlockAction, RedirectAction, ExecuteScriptAction
+from src.packet_processor import DynamicPacketProcessor, CustomPacketProcessor, MalwareDetectionProcessor, \
+    TrafficBehaviorAnalysisProcessor
 
 if __name__ == "__main__":
     firewall = Firewall()
@@ -38,6 +39,13 @@ if __name__ == "__main__":
     redirect_action = RedirectAction("192.168.1.10", 8080)
     redirect_rule = FirewallRule(redirect_condition, redirect_action)
     firewall.add_rule(redirect_rule)
+
+    # Adding rule to execute script with packet data
+    script_path = "/path/to/script.py"
+    execute_script_condition = ContentCondition("some content")
+    execute_script_action = ExecuteScriptAction(script_path)
+    execute_script_rule = FirewallRule(execute_script_condition, execute_script_action)
+    firewall.add_rule(execute_script_rule)
 
     # Create IP conditions
     ip_condition_1 = IPCondition("192.168.1.1")
