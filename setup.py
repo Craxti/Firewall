@@ -5,7 +5,16 @@ setup(
     version='1.0.0',
     author='Aleksandr',
     description='Firewall System for network traffic filtering',
-    packages=['firewall', 'rule', 'condition', 'action', 'packet_processor'],
+    packages=[
+        'firewall',
+        'rule',
+        'condition',
+        'action',
+        'packet_processor',
+        'intrusion_detection',
+        'network_monitor',
+        'packet_processor'
+    ],
     install_requires=[
         'cffi',
         'click',
@@ -19,5 +28,9 @@ setup(
         'pycparser',
         'scapy',
         'Werkzeug',
+        'psutil',
+        'numba',
+        'blinker',
+        'scikit-learn',
     ],
 )
