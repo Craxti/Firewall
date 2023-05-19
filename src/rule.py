@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+import hashlib
 
 
 class Condition(ABC):
@@ -64,11 +65,23 @@ class FirewallRule:
             else:
                 return False
 
+        packet_hash = self._get_packet_hash(packet)
+
+        if packet_hash in self.match_cache:
+            return self.match_cache[packet_hash]
+
         result = self.condition.matches(packet)
+        self.match_cache[packet_hash] = result
+
         return result
 
     def process(self, packet):
         self.action.process(packet)
+
+    def _get_packet_hash(self, packet):
+        packet_bytes = bytes(packet)
+        sha256_hash = hashlib.sha256(packet_bytes)
+        return sha256_hash.hexdigest()
 
 
 class AndCondition(Condition):
