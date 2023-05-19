@@ -74,6 +74,7 @@ class IPRangeCondition(Condition):
 class SubnetCondition(Condition):
     def __init__(self, subnet):
         self.subnet = subnet
+        self.subnet_ip = IP(subnet)
 
     def matches(self, packet):
         try:
