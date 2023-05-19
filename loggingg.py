@@ -1,4 +1,4 @@
-import logging
+import logging.config
 
 # Configure logging
 logging.basicConfig(
