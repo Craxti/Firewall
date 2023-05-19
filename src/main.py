@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from src.firewall import Firewall
 from src.rule import FirewallRule, Rule, IPCondition, PortCondition, AndCondition, OrCondition, NotCondition
 from src.condition import IPCondition, PortCondition
@@ -70,13 +72,18 @@ if __name__ == "__main__":
     # Add the dynamic packet processor to the firewall
     firewall.add_packet_processor(dynamic_packet_processor)
 
+    # Add the custom packet processors to the firewall
     firewall.add_packet_processor(custom_packet_processor)
     firewall.add_packet_processor(malware_processor)
     firewall.add_packet_processor(traffic_processor)
 
-    # Start the firewall
-    firewall.add_packet_processor(CustomPacketProcessor())
+    # Set log level and log file for the firewall
+    firewall.set_log_level(logging.INFO)
+    firewall.set_log_file("firewall.log")
 
+    # Start the firewall in an asynchronous event loop
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(asyncio.ensure_future(firewall.start_sniffing()))
 
-    # Start the firewall
-    firewall.start_sniffing()
+    # Close the event loop
+    loop.close()
