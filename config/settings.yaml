@@ -1,0 +1,14 @@
+logging:
+  enable: true
+  file_path: firewall.log
+
+notification:
+  enable: false
+  email: example@example.com
+
+network:
+  port: 8080
+  allowed_ips:
+    - 192.168.0.1
+    - 10.0.0.0/24
+

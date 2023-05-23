@@ -1,0 +1,40 @@
+- conditions:
+    - operator: and
+      field: source_ip
+      value: 192.168.0.0/24
+    - operator: or
+      field: destination_port
+      value: 80
+      description: Allow HTTP traffic
+    - operator: and
+      field: protocol
+      value: TCP
+  actions:
+    - action: allow
+      description: Allow traffic matching the conditions
+
+- conditions:
+    - operator: or
+      field: source_ip
+      value: 10.0.0.1
+      description: Allow specific IP address
+    - operator: and
+      field: destination_port
+      value: 443
+      description: Allow HTTPS traffic
+  actions:
+    - action: allow
+      description: Allow traffic matching the conditions
+
+- conditions:
+    - operator: and
+      field: protocol
+      value: ICMP
+    - operator: or
+      field: source_ip
+      value: 192.168.0.10
+      description: Allow ICMP traffic from a specific IP
+  actions:
+    - action: allow
+      description: Allow traffic matching the conditions
+
