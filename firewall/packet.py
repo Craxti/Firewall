@@ -145,3 +145,30 @@ class ARPPacket(Packet):
 
     def get_operation(self):
         return self._operation
+
+    def __str__(self):
+        return f"Source IP: {self._source_ip}, Destination IP: {self._destination_ip}, " \
+               f"Protocol: {self._protocol}, Hardware Type: {self._hardware_type}, Operation: {self._operation}, " \
+               f"Payload: {self._payload}"
+
+    def get_payload_length(self):
+        if self._payload is not None:
+            return len(self._payload)
+        else:
+            return 0
+
+    def get_source_mac_address(self):
+        if self._payload is not None and len(self._payload) >= 14:
+            source_mac_address = self._payload[6:12]
+            mac_address_str = ":".join("{:02x}".format(byte) for byte in source_mac_address)
+            return mac_address_str
+        else:
+            return None
+
+    def get_destination_mac_address(self):
+        if self._payload is not None and len(self._payload) >= 14:
+            destination_mac_address = self._payload[0:6]
+            mac_address_str = ":".join("{:02x}".format(byte) for byte in destination_mac_address)
+            return mac_address_str
+        else:
+            return None
