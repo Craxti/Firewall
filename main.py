@@ -3,7 +3,7 @@ from firewall.firewall import Firewall
 from firewall.packet import Packet, ARPPacket
 from firewall.event_handler import EventHandler
 from firewall.logging import setup_logging
-from firewall.connection_tracker import ConnectionTracker
+from firewall.connection_tracker import ConnectionTracker, Connection
 from firewall.network import NetworkInterface
 from firewall.threat_detection import ThreatDetector
 import asyncio
@@ -59,6 +59,10 @@ async def process_packets():
         # Add other packages to process
         interface = NetworkInterface("eth0")
         interface.determine_interface_speed()
+
+        # Create a connection instance
+        connection = Connection()
+        connection.update_state("ESTABLISHED")
 
         # Add a delay
         await asyncio.sleep(1)

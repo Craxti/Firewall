@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 
 class ConnectionTracker:
@@ -52,9 +53,9 @@ class ConnectionTracker:
 
 
 class Connection:
-    def __init__(self, connection_id):
-        self.id = connection_id
-        self.state = 'ESTABLISHED'
+    def __init__(self):
+        self.id = self._get_connection_id()
+        self.state = self._get_initial_state()
         self.data_transferred = 0
 
         self.logger = logging.getLogger("Connection")
@@ -65,9 +66,24 @@ class Connection:
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
+
+    def _get_connection_id(self):
+        return str(uuid.uuid4())
+
+    def _get_initial_state(self):
+        return "ESTABLISHED"
+
     def update_state(self, state):
         if state in ['ESTABLISHED', 'CLOSED', 'WAITING']:
             self.state = state
             self.logger.info(f"Connection state updated: {self.id}, State: {self.state}")
         else:
             raise ValueError("Invalid connection state.")
+
+    def process_data(self, data):
+        data_size = len(data)
+        self.data_transferred += data_size
+        self.logger.info(f"Data transferred for connection {self.id}: {self.data_transferred} bytes")
