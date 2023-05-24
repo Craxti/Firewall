@@ -72,3 +72,21 @@ class IntrusionRule(Rule):
             return True
 
         return False
+
+
+class MachineLearningRule(Rule):
+    def __init__(self, name, model):
+        super().__init__(name)
+        self.model = model
+
+    def matches(self, packet):
+        pass
+
+
+class StatisticalAnalysisRule(Rule):
+    def __init__(self, name, analysis_algorithm):
+        super().__init__(name)
+        self.analysis_algorithm = analysis_algorithm
+
+    def matches(self, packet):
+        pass
