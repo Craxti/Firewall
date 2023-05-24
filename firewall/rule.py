@@ -1,3 +1,7 @@
+import json
+import yaml
+
+
 class Rule:
     def __init__(self):
         self.conditions = []
@@ -48,7 +52,8 @@ class Rule:
         else:
             return False
 
-    def _compare_values(self, value1, value2, operator):
+    @staticmethod
+    def _compare_values(value1, value2, operator):
         if operator == 'equals':
             return value1 == value2
         elif operator == 'not_equals':
@@ -65,3 +70,27 @@ class Rule:
 
     def conflicts_with(self, other_rule):
         pass
+
+    def to_json(self):
+        return json.dumps(self.conditions + self.actions)
+
+    @classmethod
+    def from_json(cls, json_string):
+        rule = cls()
+        data = json.loads(json_string)
+        conditions = data[:len(data) // 2]
+        actions = data[len(data) // 2:]
+        rule.conditions = conditions
+        rule.actions = actions
+        return rule
+
+    def to_yaml(self):
+        return yaml.dump({'conditions': self.conditions, 'actions': self.actions})
+
+    @classmethod
+    def from_yaml(cls, yaml_string):
+        data = yaml.safe_load(yaml_string)
+        rule = cls()
+        rule.conditions = data['conditions']
+        rule.actions = data['actions']
+        return rule
