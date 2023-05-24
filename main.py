@@ -1,6 +1,6 @@
 from firewall.rule_parser import parse_rules
 from firewall.firewall import Firewall
-from firewall.packet import Packet
+from firewall.packet import Packet, ARPPacket
 from firewall.event_handler import EventHandler
 from firewall.logging import setup_logging
 from firewall.connection_tracker import ConnectionTracker
@@ -34,6 +34,7 @@ async def process_packets():
 
     while True:
         # Packet Processing Example
+        arpppacket = ARPPacket('192.168.0.2', 'ARP', payload='ARP Payload')
         packet = Packet()
         packet.set_source_ip()
         packet.set_destination_ip('10.0.0.2')
@@ -42,14 +43,18 @@ async def process_packets():
 
         # Packet processing by the connection tracker
         connection_tracker.process_packet(packet)
+        connection_tracker.process_packet(arpppacket)
 
         # Packet processing on the network interface
         network_interface.process_packet(packet)
+        network_interface.process_packet(arpppacket)
 
         # Package Threat Detection
         threat_detector.detect_threats(packet)
+        threat_detector.detect_threats(arpppacket)
 
         event_handler.handle_event('packet_processed', packet)
+        event_handler.handle_event('packet_processed', arpppacket)
 
         # Add other packages to process
 

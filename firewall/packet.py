@@ -29,7 +29,7 @@ class Packet:
         self._destination_ip = destination_ip
 
     def set_protocol(self, protocol):
-        valid_protocols = ["TCP", "UDP", "ICMP"]
+        valid_protocols = ["TCP", "UDP", "ICMP", "ARP", "ICMP"]
         if protocol not in valid_protocols:
             raise ValueError(f"Invalid protocol. Valid protocols are: {', '.join(valid_protocols)}")
         self._protocol = protocol
@@ -134,11 +134,11 @@ class ARPPacket(Packet):
         self.set_protocol(protocol)
         self.set_payload(payload)
 
-    def set_hardware_type(self, hardware_type):
-        self._hardware_type = hardware_type
-
-    def set_operation(self, operation):
-        self._operation = operation
+    def set_protocol(self, protocol):
+        super().set_protocol(protocol)
+        if protocol == "ARP":
+            self._hardware_type = "Ethernet"
+            self._operation = "Request"
 
     def get_hardware_type(self):
         return self._hardware_type
