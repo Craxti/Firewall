@@ -57,6 +57,8 @@ async def process_packets():
         event_handler.handle_event('packet_processed', arpppacket)
 
         # Add other packages to process
+        interface = NetworkInterface("eth0")
+        interface.determine_interface_speed()
 
         # Add a delay
         await asyncio.sleep(1)
