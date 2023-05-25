@@ -3,6 +3,15 @@
 This is a firewall application developed in Python.
 
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Features](#features)
+- [Contributing](#contributing)
+- [License](#license)
+
+
 ## How It Works
 
 The firewall application is designed to process incoming packets on a network interface and apply various security measures. Here's an overview of how it works:
