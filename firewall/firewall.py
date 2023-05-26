@@ -307,7 +307,6 @@ class ARPHandler(PacketHandler):
             self.logger.error(f"Error processing ARP packet: {str(e)}")
 
     def _process_arp_packet(self, packet):
-        # Example logic for ARP packet processing
         # Print the ARP packet details
         self.logger.debug(f"ARP packet details:")
         self.logger.debug(f"  - Source IP: {packet.psrc}")
