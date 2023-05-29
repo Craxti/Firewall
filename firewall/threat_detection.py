@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import statistics
 import logging
 from firewall.packet import Packet
 
@@ -155,9 +156,38 @@ class StatisticalAnalysisRule(Rule):
 
     def matches(self, packet):
         if self.analysis_algorithm == "mean":
-            return mean_analysis(packet)
+            return self.mean_analysis(packet)
         elif self.analysis_algorithm == "std_dev":
             return std_dev_analysis(packet)
         else:
             print(f"Unknown analysis algorithm: {self.analysis_algorithm}")
             return False
+
+    def mean_analysis(self, packet):
+        protocol = packet.get_protocol()
+        if protocol == "TCP":
+            source_port = packet.get_source_port()
+            destination_port = packet.get_destination_port()
+
+            ports = [port for port in (source_port, destination_port) if port is not None]
+            if ports:
+                mean = statistics.mean(ports)
+                if mean > 5000:
+                    return True
+
+        elif protocol == "UDP":
+            source_port = packet.get_source_port()
+            destination_port = packet.get_destination_port()
+
+            ports = [port for port in (source_port, destination_port) if port is not None]
+            if ports:
+                mean = statistics.mean(ports)
+                if mean < 1000:
+                    return True
+
+        elif protocol == "ICMP":
+            type_code = packet.get_type_code()
+            if type_code == (8, 0):
+                return True
+
+        return False
