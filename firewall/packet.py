@@ -1,5 +1,6 @@
 import ipaddress
 import socket
+import re
 
 
 class Packet:
@@ -199,3 +200,8 @@ class ARPPacket(Packet):
             self._operation = "Reply"
         else:
             self._operation = "Unknown"
+
+    @staticmethod
+    def is_valid_mac_address(mac_address):
+        pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+        return re.match(pattern, mac_address) is not None
