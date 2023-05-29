@@ -173,3 +173,29 @@ class ARPPacket(Packet):
             return mac_address_str
         else:
             return None
+
+    def get_payload(self):
+        return self._payload
+
+    def set_payload(self, payload):
+        super().set_payload(payload)
+        if payload is not None and len(payload) >= 14:
+            self._extract_arp_fields()
+
+    def _extract_arp_fields(self):
+        hardware_type_bytes = self._payload[14:16]
+        operation_bytes = self._payload[20:22]
+        hardware_type = int.from_bytes(hardware_type_bytes, byteorder='big')
+        operation = int.from_bytes(operation_bytes, byteorder='big')
+
+        if hardware_type == 1:
+            self._hardware_type = "Ethernet"
+        else:
+            self._hardware_type = "Unknown"
+
+        if operation == 1:
+            self._operation = "Request"
+        elif operation == 2:
+            self._operation = "Reply"
+        else:
+            self._operation = "Unknown"
