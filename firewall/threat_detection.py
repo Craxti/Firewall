@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 import logging
 from firewall.packet import Packet
 
@@ -75,15 +76,24 @@ class IntrusionRule(Rule):
         return False
 
 
+def load_model(model_path):
+    try:
+        model = tf.keras.models.load_model(model_path)
+        return model
+    except (FileNotFoundError, ValueError):
+        print(f"Failed to load model from {model_path}")
+        return None
+
+
 class MachineLearningRule(Rule):
     def __init__(self, name, model_path):
         super().__init__(name)
-        self.model = tf.keras.models.load_model(model_path)
+        self.model = load_model(model_path)
 
     def matches(self, packet):
         processed_data = self.preprocess_packet(packet)
 
-        if processed_data is None:
+        if processed_data is None or self.model is None:
             return False
 
         prediction = self.model.predict(processed_data)
@@ -110,10 +120,44 @@ class MachineLearningRule(Rule):
         return processed_data
 
 
+def mean_analysis(packet):
+    if packet.payload is None:
+        return False
+
+    payload = packet.payload
+    mean_value = np.mean(payload)
+
+    threshold = 0.5  # Adjust the threshold according to your requirements
+    if mean_value > threshold:
+        return True
+    else:
+        return False
+
+
+def std_dev_analysis(packet):
+    if packet.payload is None:
+        return False
+
+    payload = packet.payload
+    std_dev_value = np.std(payload)
+
+    threshold = 0.5  # Adjust the threshold according to your requirements
+    if std_dev_value > threshold:
+        return True
+    else:
+        return False
+
+
 class StatisticalAnalysisRule(Rule):
     def __init__(self, name, analysis_algorithm):
         super().__init__(name)
         self.analysis_algorithm = analysis_algorithm
 
     def matches(self, packet):
-        pass
+        if self.analysis_algorithm == "mean":
+            return mean_analysis(packet)
+        elif self.analysis_algorithm == "std_dev":
+            return std_dev_analysis(packet)
+        else:
+            print(f"Unknown analysis algorithm: {self.analysis_algorithm}")
+            return False
