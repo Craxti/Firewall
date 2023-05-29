@@ -1,6 +1,6 @@
 from firewall.rule_parser import parse_rules
 from firewall.firewall import Firewall
-from firewall.packet import Packet, ARPPacket
+from firewall.packet import Packet, ARPPacket, IPv4Packet, IPv6Packet, ICMPv6Packet
 from firewall.event_handler import EventHandler
 from firewall.logging import setup_logging
 from firewall.connection_tracker import ConnectionTracker, Connection
@@ -58,6 +58,20 @@ async def process_packets():
         # Package Threat Detection
         threat_detector.detect_threats(packet)
         threat_detector.detect_threats(arpppacket)
+
+        # Adding IPv4Packet, IPv6Packet, ICMPv6Packet
+#        ipv4_packet = IPv4Packet('192.168.0.1', '192.168.0.2', 'ICMPv4')
+#        ipv6_packet = IPv6Packet('2001:db8::1', '2001:db8::2', 'ICMPv6')
+#        icmpv6_packet = ICMPv6Packet('2001:db8::1', '2001:db8::2', 'Router Solicitation')
+
+#        connection_tracker.process_packet(ipv4_packet)
+#        connection_tracker.process_packet(ipv6_packet)
+#        network_interface.process_packet(ipv4_packet)
+#        network_interface.process_packet(ipv6_packet)
+#        threat_detector.detect_threats(ipv4_packet)
+#        threat_detector.detect_threats(ipv6_packet)
+#        event_handler.handle_event('packet_processed', ipv4_packet)
+#        event_handler.handle_event('packet_processed', ipv6_packet)
 
         event_handler.handle_event('packet_processed', packet)
         event_handler.handle_event('packet_processed', arpppacket)

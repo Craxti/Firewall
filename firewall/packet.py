@@ -1,6 +1,7 @@
 import ipaddress
 import socket
 import re
+import time
 
 
 class Packet:
@@ -13,6 +14,8 @@ class Packet:
         self._protocol = None
         self.source_ip = None
         self.destination_ip = None
+        self.packet_id = None
+        self.timestamp = None
 
     def set_payload(self, payload):
         if payload is not None and not isinstance(payload, str):
@@ -31,7 +34,7 @@ class Packet:
         self._destination_ip = destination_ip
 
     def set_protocol(self, protocol):
-        valid_protocols = ["TCP", "UDP", "ICMP", "ARP", "ICMP"]
+        valid_protocols = ['TCP', 'UDP', 'ICMP', 'ARP', 'ICMPv6', 'ICMPv4']
         if protocol not in valid_protocols:
             raise ValueError(f"Invalid protocol. Valid protocols are: {', '.join(valid_protocols)}")
         self._protocol = protocol
@@ -41,6 +44,12 @@ class Packet:
 
     def get_destination_ip(self):
         return self.destination_ip
+
+    def set_packet_id(self, packet_id):
+        self.packet_id = packet_id
+
+    def set_timestamp(self):
+        self.timestamp = time.time()
 
     @staticmethod
     def _get_local_ip():
@@ -57,7 +66,8 @@ class Packet:
             return False
 
     def __str__(self):
-        return f"Source IP: {self._source_ip}, Destination IP: {self._destination_ip}, " \
+        return f"Packet ID: {self.packet_id}, Timestamp: {self.timestamp}, " \
+               f"Source IP: {self._source_ip}, Destination IP: {self._destination_ip}, " \
                f"Protocol: {self._protocol}, Payload: {self._payload}"
 
     def get_source_port(self):
@@ -115,6 +125,18 @@ class Packet:
             return None
 
 
+class IPv4Packet(Packet):
+    def __init__(self, destination_ip, protocol, payload=None):
+        super().__init__()
+        self._version = 4
+        self.set_destination_ip(destination_ip)
+        self.set_protocol(protocol)
+        self.set_payload(payload)
+
+    def get_version(self):
+        return self._version
+
+
 class IPv6Packet(Packet):
     def __init__(self, destination_ip, protocol, payload=None):
         super().__init__()
@@ -149,7 +171,8 @@ class ARPPacket(Packet):
         return self._operation
 
     def __str__(self):
-        return f"Source IP: {self._source_ip}, Destination IP: {self._destination_ip}, " \
+        return f"Packet ID: {self.packet_id}, Timestamp: {self.timestamp}, " \
+               f"Source IP: {self._source_ip}, Destination IP: {self._destination_ip}, " \
                f"Protocol: {self._protocol}, Hardware Type: {self._hardware_type}, Operation: {self._operation}, " \
                f"Payload: {self._payload}"
 
@@ -205,3 +228,67 @@ class ARPPacket(Packet):
     def is_valid_mac_address(mac_address):
         pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
         return re.match(pattern, mac_address) is not None
+
+
+class ICMPv6Packet(Packet):
+    def __init__(self, destination_ip, protocol, payload=None):
+        super().__init__()
+        self._icmp_type = None
+        self._icmp_code = None
+        self.set_destination_ip(destination_ip)
+        self.set_protocol(protocol)
+        self.set_payload(payload)
+
+    def set_protocol(self, protocol):
+        super().set_protocol(protocol)
+        if protocol == "ICMPv6":
+            self._icmp_type = "Echo Request"
+            self._icmp_code = 0
+
+    def get_icmp_type(self):
+        return self._icmp_type
+
+    def get_icmp_code(self):
+        return self._icmp_code
+
+    def __str__(self):
+        return f"Packet ID: {self.packet_id}, Timestamp: {self.timestamp}, " \
+               f"Source IP: {self._source_ip}, Destination IP: {self._destination_ip}, " \
+               f"Protocol: {self._protocol}, ICMP Type: {self._icmp_type}, ICMP Code: {self._icmp_code}, " \
+               f"Payload: {self._payload}"
+
+    def get_payload_length(self):
+        if self._payload is not None:
+            return len(self._payload)
+        else:
+            return 0
+
+    def get_payload(self):
+        return self._payload
+
+    def set_payload(self, payload):
+        super().set_payload(payload)
+        if payload is not None and len(payload) >= 8:
+            self._extract_icmp_fields()
+
+    def _extract_icmp_fields(self):
+        icmp_type_bytes = self._payload[0:1]
+        icmp_code_bytes = self._payload[1:2]
+        icmp_type = int.from_bytes(icmp_type_bytes, byteorder='big')
+        icmp_code = int.from_bytes(icmp_code_bytes, byteorder='big')
+
+        self._icmp_type = self._get_icmp_type_name(icmp_type)
+        self._icmp_code = icmp_code
+
+    @staticmethod
+    def _get_icmp_type_name(icmp_type):
+        # Define a mapping of ICMPv6 type codes to their names
+        icmp_type_mapping = {
+            128: "Echo Request",
+            129: "Echo Reply",
+            130: "Group Membership Query",
+            131: "Group Membership Report",
+            132: "Group Membership Reduction",
+            # Add more type codes as needed
+        }
+        return icmp_type_mapping.get(icmp_type, "Unknown")
