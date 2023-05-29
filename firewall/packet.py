@@ -4,6 +4,7 @@ import socket
 
 class Packet:
     def __init__(self):
+        self.payload = None
         self._payload = None
         self.protocol = None
         self._source_ip = None

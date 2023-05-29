@@ -1,3 +1,4 @@
+import tensorflow as tf
 import logging
 from firewall.packet import Packet
 
@@ -75,12 +76,38 @@ class IntrusionRule(Rule):
 
 
 class MachineLearningRule(Rule):
-    def __init__(self, name, model):
+    def __init__(self, name, model_path):
         super().__init__(name)
-        self.model = model
+        self.model = tf.keras.models.load_model(model_path)
 
     def matches(self, packet):
-        pass
+        processed_data = self.preprocess_packet(packet)
+
+        if processed_data is None:
+            return False
+
+        prediction = self.model.predict(processed_data)
+
+        threshold = 0.5
+        if prediction > threshold:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def preprocess_packet(packet):
+        if packet.payload is None:
+            return None
+
+        processed_data = packet.payload
+
+        processed_data = tf.convert_to_tensor(processed_data, dtype=tf.float32)
+
+        processed_data = tf.keras.utils.normalize(processed_data)
+
+        processed_data = tf.reshape(processed_data, shape=(1, -1))
+
+        return processed_data
 
 
 class StatisticalAnalysisRule(Rule):
