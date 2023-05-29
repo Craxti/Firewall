@@ -5,7 +5,7 @@ from firewall.event_handler import EventHandler
 from firewall.logging import setup_logging
 from firewall.connection_tracker import ConnectionTracker, Connection
 from firewall.network import NetworkInterface
-from firewall.threat_detection import ThreatDetector
+from firewall.threat_detection import ThreatDetector, MachineLearningRule
 import asyncio
 import logging
 
@@ -31,6 +31,12 @@ async def process_packets():
 
     # Create a Threat Detector Instance
     threat_detector = ThreatDetector(rules)
+
+    # Create a Machine Learning Rule Instance
+    machine_learning_rule = MachineLearningRule('Malware Detection', 'firewall/malware.h5')
+
+    # Add the Machine Learning Rule to the Threat Detector
+    threat_detector.add_rule(machine_learning_rule)
 
     while True:
         # Packet Processing Example
