@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest
+
+      - name: Lint code
+        run: pylint --fail-under=8 main.py firewall.py rule.py condition.py action.py packet_processor.py
+
+      - name: Code formatting check
+        run: black --check main.py firewall.py rule.py condition.py action.py packet_processor.py
+
+      - name: Code coverage
+        run: pytest --cov-report term --cov=. tests/

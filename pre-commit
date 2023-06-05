@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Run the test suite
+python -m unittest discover -s tests -p test_*.py
+
+# Run any other checks or commands you want to perform before committing
+# ...
+
+# If any of the checks fail, exit with a non-zero status code to prevent the commit
+# exit 0
