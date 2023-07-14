@@ -1,12 +1,13 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(
-    name='Firewall',
-    version='2.0.0',
-    packages=['tests', 'firewall'],
-    url='https://github.com/Craxti/Firewall',
-    license='MIT',
-    author='Craxti',
-    author_email='fetis.dev@gmail.com',
-    description='Firewall System'
+    name="firewall",
+    version="3.0",
+    platforms=["any"],
+    long_description='Firewall configuration generator and implementor for Cyber Network Defenders. ',
+    packages=find_packages(),
+    scripts=['bin/firewall', 'bin/bs'],
+    author="Alexksandr Fetisov",
+    author_email="fetis.dev@gmail.com"
+
 )
