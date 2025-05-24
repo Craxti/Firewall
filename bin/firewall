@@ -1,12 +1,47 @@
+#!/usr/bin/env python
+import os
+import platform
+import sys
+
 from firewall.interact.set_firewall import SetFirewall
 from firewall.host_config.confighost import ConfigHost
 from firewall.utils.shell import Interact
 from firewall.utils.shell import Bcolors
 
 
-class FirewallConfigure(SetFirewall):
+# Определяем операционную систему
+def is_windows():
+    """
+   Determines whether the current OS is Windows.
+    
+    Returns:
+        bool: True, если ОС - Windows, иначе False
+    """
+    return platform.system().lower() == 'windows'
+
+
+def get_firewall_class():
+    """
+    Returns the appropriate firewall class depending on the operating system.
+
+    Returns:
+    class: Class for managing the firewall (SetFirewall for Linux, WindowsFirewallAdapter for Windows)
+    """
+    if is_windows():
+        try:
+            from firewall.windows.adapter import WindowsFirewallAdapter
+            return WindowsFirewallAdapter
+        except ImportError:
+            print("[!] Windows adapter not found. Using Linux adapter (may not work correctly).")
+            return SetFirewall
+    else:
+        return SetFirewall
+
+
+class FirewallConfigure:
     def __init__(self):
-        super(FirewallConfigure, self).__init__()
+        FirewallClass = get_firewall_class()
+        self.sf = FirewallClass(verbose=True)
 
         self.parse_args()
 
@@ -14,16 +49,24 @@ class FirewallConfigure(SetFirewall):
 
         if self.args.quiet:
             self.verbose = False
-
-        self.sf = SetFirewall(verbose=self.verbose)
+            self.sf.verbose = False
 
         if self.args.config:
             self.cm = ConfigHost(config_in=self.args.config, VERBOSE=self.verbose)
 
+    def parse_args(self):
+        """
+        Parses command line arguments.
+        """
+        self.sf.parse_args()
+        self.args = self.sf.args
+
 
 def main():
-    bw = FireConfigure()
-    bw.sf.parse_args()
+    if is_windows() and len(sys.argv) > 1:
+        print(f"[{Bcolors.WARNING}NOTICE{Bcolors.ENDC}] Running on Windows. Some features may work differently than on Linux.")
+    
+    bw = FirewallConfigure()
     USE_DEFAULT = False
     SIMULATION = False
 
@@ -62,7 +105,14 @@ def main():
         bw.sf.flush_rules()
 
     if CONFIG:
-        bw.sf.command_list.extend(bw.cm.redhat_setup())
+        if hasattr(bw, 'cm'):
+            if is_windows():
+                if hasattr(bw.cm, 'windows_setup'):
+                    bw.sf.command_list.extend(bw.cm.windows_setup())
+                else:
+                    print(f"[{Bcolors.WARNING}WARNING{Bcolors.ENDC}] Config setup for Windows not implemented")
+            else:
+                bw.sf.command_list.extend(bw.cm.redhat_setup())
         USE_DEFAULT = False
 
     if RESET:
@@ -82,7 +132,10 @@ def main():
         USE_DEFAULT = True
 
     if DISALLOW_DHCP:
-        bw.disallow_dhcp()
+        if hasattr(bw.sf, 'disallow_dhcp'):
+            bw.sf.disallow_dhcp()
+        else:
+            bw.sf.disallow_dhcp()
         USE_DEFAULT = True
 
     if TCP_PORTS_OUT and not OUTBOUND_HOSTS:
@@ -161,34 +214,42 @@ def main():
         bw.sf.parser.error("Config (-c) must be provided when using -w")
 
     if WIN_CONFIG and CONFIG:
-        bw.cm.config_win(WIN_CONFIG)
+        if hasattr(bw, 'cm'):
+            if hasattr(bw.cm, 'config_win'):
+                bw.cm.config_win(WIN_CONFIG)
+            else:
+                print(f"[{Bcolors.WARNING}WARNING{Bcolors.ENDC}] Windows config method not implemented")
 
     if INFO:
-        print bw.sf.firewall_info()
+        if hasattr(bw.sf, 'firewall_info'):
+            print(bw.sf.firewall_info())
+        else:
+            print(f"[{Bcolors.WARNING}WARNING{Bcolors.ENDC}] Firewall info not implemented for this platform")
         USE_DEFAULT = False
 
     if USE_DEFAULT:
         default_setup()
 
-    def drop_reorder(command_list):
-        drop_list = []
-        for i, command in enumerate(command_list):
-            if 'DROP' in command:
-                drop_list.append(command_list.pop(i))
-        return command_list + drop_list
+    if not is_windows():
+        def drop_reorder(command_list):
+            drop_list = []
+            for i, command in enumerate(command_list):
+                if 'DROP' in command:
+                    drop_list.append(command_list.pop(i))
+            return command_list + drop_list
 
-    bw.sf.command_list = drop_reorder(bw.sf.command_list)
+        bw.sf.command_list = drop_reorder(bw.sf.command_list)
 
     if SIMULATE and bw.sf.command_list:
         SIMULATION = True
-        print("[{info}SHOWING SIMULATED CONFIG{ENDC}]").format(info=Bcolors.OKBLUE, ENDC=bcolors.ENDC)
+        print("[{info}SHOWING SIMULATED CONFIG{ENDC}]".format(info=Bcolors.OKBLUE, ENDC=Bcolors.ENDC))
         for command in bw.sf.command_list:
             print(command)
-        print("[{info}SIMULATED CONFIGURATION{ENDC}] {WARN}NOT APPLIED{ENDC}").format(info=bcolors.OKBLUE,
+        print("[{info}SIMULATED CONFIGURATION{ENDC}] {WARN}NOT APPLIED{ENDC}".format(info=Bcolors.OKBLUE,
                                                                                      WARN=Bcolors.WARNING,
-                                                                                     ENDC=Bcolors.ENDC)
+                                                                                     ENDC=Bcolors.ENDC))
     elif SIMULATE and not bw.sf.command_list:
-        print("[{WARN}SKIP{ENDC}] NOTHING TO SIMULATE - Please pass a configuration using -c").format(WARN=Bcolors.WARNING, ENDC=bcolors.ENDC)
+        print("[{WARN}SKIP{ENDC}] NOTHING TO SIMULATE - Please pass a configuration using -c".format(WARN=Bcolors.WARNING, ENDC=Bcolors.ENDC))
 
         for command in bw.sf.command_list:
             print(command)

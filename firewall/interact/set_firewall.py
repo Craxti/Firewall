@@ -13,7 +13,10 @@ class SetFirewall(BwCli):
         self.verbose = verbose
         self.parse_args()
         self.it = Interact()
-        self.root_check = self.it.root_check(debug=False)
+        
+        if execute:
+            self.root_check = self.it.root_check(debug=False)
+            
         self.firewall = {}
         self.execute = execute
         self.command_list = []

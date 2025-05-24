@@ -1,240 +1,219 @@
+# Firewall
 
+A universal tool for managing firewalls in Linux and Windows. Allows you to quickly and conveniently configure firewall rules, ensuring the security of your system.
 
-Firewall
-======
+## Features
 
-firewall is a firewall framework designed for offensive and defensive cyber professionals.
-This framework allows Cybersecurity professionals to quickly setup their environment while 
-staying within their scope.
+- Manage the firewall via a single interface for Linux (iptables) and Windows (Windows Firewall)
+- Configure rules for incoming and outgoing traffic
+- Block and allow specific ports, protocols, and IP addresses
+- Support for configuration via a configuration file
+- Simulate the application of rules for preliminary checking
+- Advanced logging capabilities
+- Wizard for interactive configuration
 
+## Requirements
 
+- Python 3.6 or higher
+- Linux: iptables
+- Windows: PowerShell 3.0 or higher
 
-Features
---------
-#### firewall
-    * Configure Firewall
-    * Configure Hostname
-    * Configure Interface(s)
+## Installation
 
-#### Supported Operating Systems
-    * Redhat/CentOS
-    * Windows configuration can be generated but not executed.
-
-
-#### Commandline
-    *  firewall -c config/example.ini
-    ** See example configuration
-
-#### Utils
-    * Enumerate - Identify live hosts inside your network (coming soon)
-
-#### Symantecs
-
-    * Target Host - Outbound communication
-    * Trusted Host - Bidirectional communication
-    * No Strike - Devices your computer should not communicate with
-
-#### Setup
+### Install from PyPI
 
 ```bash
-# FOR PYTHON 3.x
-sudo python setup.py install
-sudo firewall -h (for help)
+pip install firewall
 ```
 
-## Getting Started
+### Install from source
 
 ```bash
-# Setup Initial Environment using Configuration
-sudo firewall -c config/hostconfig.ini
+git clone https://github.com/fetis/firewall.git
+cd firewall
+pip install -e .
+```
 
-# Export optional windows configuration
-sudo firewall -c config/hostconfig.ini -w autoconfig.ps1
+## Quick Start
 
-# Add additional inbound host or ranges
-sudo firewall -ih 192.168.0.3,192.168.1.0/24
+### Basic Commands
 
-# Exclude host to communicate with
-sudo firewall -eh 192.168.1.1
+#### Allow All Traffic
 
-# Super easy wizard mode
+```bash
+sudo firewall --allow-all
+```
+
+#### Deny All Traffic (while Allowing Established Connections)
+
+```bash
+sudo firewall --deny-all
+```
+
+#### Set Basic Security Rules
+
+```bash
+sudo firewall
+```
+
+### Manage Network Traffic
+
+#### Allow Incoming Connections on a Specific Port
+
+```bash
+sudo firewall -ti 80,443
+```
+
+#### Allow Outgoing Connections on a Specific Port
+
+```bash
+sudo firewall -to 53,80,443
+```
+
+#### Allow UDP Traffic
+
+```bash
+sudo firewall -ui 53
+```
+
+### Working with IP addresses and networks
+
+#### Allow incoming traffic from a specific IP address
+
+```bash
+sudo firewall -i 192.168.1.10/32
+```
+
+#### Allow outgoing traffic to a specific network
+
+```bash
+sudo firewall -o 10.0.0.0/8
+```
+
+#### Block traffic for specific networks
+
+```bash
+sudo firewall -x 192.168.1.100/32,10.0.0.5/32
+```
+
+### Windows examples
+
+On Windows, the commands have the same syntax, but require administrator rights to run.
+
+```powershell
+# Run PowerShell as Administrator
+firewall --allow-all
+```
+
+## Advanced Usage
+
+### Using a Configuration File
+
+Create a configuration file:
+
+```ini
+[local_config]
+iface=eth0
+rh_host=myserver
+rh_ipaddr=192.168.1.100
+netmask=255.255.255.0
+gateway_addr=192.168.1.1
+dns=8.8.8.8
+
+[firewall_config]
+target_range=10.0.0.0/8
+target_range=172.16.0.0/12
+trusted_range=192.168.1.0/24
+nostrike=192.168.1.5/32
+```
+
+Apply configuration:
+
+```bash
+sudo firewall -c config.ini
+```
+
+### Interactive configuration mode
+
+```bash
 sudo firewall --wizard
 ```
 
-### Help
-```
-usage: firewall [-h] [-V] [-v] [-r] [-p] [-i] [-d] [-w WINDOWS_CONFIG]
-          [-ot TCP_PORTS_OUT] [-ou UDP_PORTS_OUT] [-it TCP_PORTS_IN]
-          [-iu UDP_PORTS_IN] [-oh OUTBOUND_HOSTS] [-ih INBOUND_HOSTS]
-          [-eh EXCLUDE_HOSTS] [-l] [-s] [-q] [-D] [-A] [-F] [-S] [-c CONFIG]
-          [--info]
+### Simulate rules before applying
 
-            A python framework to automate firewall setup.
-
-        Defaults:
-            Outbound connections will be allowed on all ports to all hosts.
-            Inbound connections will be limited to related outbound traffic.
-            DHCP will be enabled.
-            Ping responses will be enabled.
-            Unsolicited inbound connections will be dropped.
-
-        
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -V, --version         Display Version
-  -v, --verbose         Verbose Mode
-  -r, --reset           Send TCP RST instead of dropping packet.
-  -p, --disallow_ping   Disallow incoming PING
-  -i, --allow_outbound_icmp
-                        Don't restrict ICMP types
-  -d, --disallow_dhcp   Disallow DHCP
-  -w WINDOWS_CONFIG, --windows_config WINDOWS_CONFIG
-                        Generate Windows Configuration. Usage: firewall -w
-                        config.ps1
-  -ot TCP_PORTS_OUT, --tcp_ports_out TCP_PORTS_OUT
-                        Comma separated list of allowed TCP ports outbound
-  -ou UDP_PORTS_OUT, --udp_ports_out UDP_PORTS_OUT
-                        Comma separated list of allowed UDP ports outbound
-  -it TCP_PORTS_IN, --tcp_ports_in TCP_PORTS_IN
-                        Comma separated list of allowed TCP ports inbound
-  -iu UDP_PORTS_IN, --udp_ports_in UDP_PORTS_IN
-                        Comma separated list of allowed UDP ports inbound
-  -oh OUTBOUND_HOSTS, --outbound_hosts OUTBOUND_HOSTS
-                        Restrict outbound to specified hosts. -oh
-                        192.168.3.0/24,192.168.4.0/24
-  -ih INBOUND_HOSTS, --inbound_hosts INBOUND_HOSTS
-                        Restrict outbound to specified hosts. -ih
-                        192.168.3.0/24,192.168.4.0/24
-  -eh EXCLUDE_HOSTS, --exclude_hosts EXCLUDE_HOSTS
-                        Exclude hosts -eh 192.168.3.0/24
-  -l, --log_exceptions  Log Exceptions
-  -s, --simulate        Simulate only.
-  -q, --quiet           Quiet (don't display status messages
-  -D, --deny_all        Absolute Deny all
-  -A, --allow_all       Absolute allow all
-  -F, --flush           Flush IPTables
-  -S, --show_rules      Show rules after setting
-  --wizard              Addressing and firewall wizard mode
-  -c CONFIG, --config CONFIG
-                        Configuration for firewall
-  --info                About firewall
-```
-
-### Config Example
-
-example.ini
-```
-[local_config]
-iface=em1
-rh_host=RHEL-Example
-rh_ipaddr=192.168.1.42
-netmask=255.255.255.0
-gateway_addr=172.16.63.1
-dns=8.8.8.8
-#win_ipaddr=192.168.1.42 - Optional windows IP Address
-#
-# Optional Windows host (firewall will generate a config file for windows)
-win_host=WINExample
-# MAC Addresses must be ALL CAPS Valid: AA:93:AB:EF:00:01
-# rh_mac=* will generate random MAC address
-rh_mac=*
-
-[firewall_config]
-# Target Range are networks you want to allow outbound communication with.
-target_range=172.16.63.0/24
-target_range=192.168.2.0/24
-#
-# Nostrike addresses are devices your computer should NOT communicate with
-nostrike=192.168.2.1
-#
-# Trusted Range are networks you wish to have bi-directional communication with
-trusted_range=172.16.63.0/24
-trusted_host=42.42.42.42
-```
-
-### Output
 ```bash
-[ataylor@localhost firewall]$ sudo firewall -c configs/exampleconfig.ini 
-[OK] 192.168.1.101 is a valid setting for dns
-[OK] 192.168.1.1 is a valid setting for gateway_addr
-[OK] 24 is a valid setting for cidr_prefix
-[OK] 192.168.1.254 is a valid setting for nostrike
-[OK] * is a valid setting for rh_mac
-[OK] WINtaylor is a valid setting for win_host
-[OK] 192.168.2.0/24 is a valid setting for target_range
-[OK] 192.168.3.0/24 is a valid setting for target_range
-[OK] 192.168.1.30 is a valid setting for rh_ipaddr
-[OK] RHEL-taylor is a valid setting for rh_host
-[OK] 42.42.42.42 is a valid setting for trusted_host
-[OK] 192.168.1.0/24 is a valid setting for trusted_range
-[OK] 192.168.1.50 is a valid setting for win_ipaddr
-==============================
-
-[VALID CONFIG] No Errors Detected.
-
-CONFIGURING
-writing eth config to /etc/sysconfig/network-scripts/ifcfg-ens33
-[CONFIGURATION]
-TYPE="Ethernet"
-BOOTPROTO=none
-NAME=ens33
-DEVICE="ens33"
-ONBOOT=no
-DEFROUTE="yes"
-IPV4_FAILURE_FATAL=no
-DNS1=192.168.1.101
-IPADDR=192.168.1.30
-PREFIX=24
-GATEWAY=192.168.1.1
-MACADDR=00:16:3E:52:7F:8D
-
-[+] Interface ens33 shutdown.
-[+] Restarting Network Service
-[+] Interface ens33 brought up.
-[+] Rules Flushed!
-[+] Allowing outbound ICMP/traceroute to 192.168.2.0/24...
-[+] Allowing outbound ICMP/traceroute to 192.168.3.0/24...
-[+] Allowing outbound ICMP/traceroute to 192.168.1.0/24...
-[+] Limiting outbound TCP connections to 192.168.2.0/24.
-[+] Limiting outbound TCP connections to 192.168.3.0/24.
-[+] Limiting outbound TCP connections to 192.168.1.0/24.
-[+] Limiting outbound UDP connections to 192.168.2.0/24.
-[+] Limiting outbound UDP connections to 192.168.3.0/24.
-[+] Limiting outbound UDP connections to 192.168.1.0/24.
-[+] Limiting inbound UDP connections to 192.168.1.0/24.
-[+] Limiting inbound TCP connections to 192.168.1.0/24.
-[+] Allowing traffic for localhost.
-[+] 192.168.1.254 applied to NOSTRIKE
-$ iptables -nvL
-Chain INPUT (policy DROP 0 packets, 0 bytes)
- pkts bytes target     prot opt in     out     source               destination         
-    0     0 DROP       all  --  *      *       192.168.1.254        0.0.0.0/0           
-    0     0 ACCEPT     all  --  *      *       127.0.0.0/8          127.0.0.0/8         
-    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            192.168.1.0/24      
-    0     0 ACCEPT     udp  --  *      *       0.0.0.0/0            192.168.1.0/24      
-
-Chain FORWARD (policy DROP 0 packets, 0 bytes)
- pkts bytes target     prot opt in     out     source               destination         
-
-Chain OUTPUT (policy DROP 0 packets, 0 bytes)
- pkts bytes target     prot opt in     out     source               destination         
-    0     0 DROP       all  --  *      *       0.0.0.0/0            192.168.1.254       
-    0     0 ACCEPT     all  --  *      *       127.0.0.0/8          127.0.0.0/8         
-    0     0 ACCEPT     udp  --  *      *       0.0.0.0/0            192.168.1.0/24      
-    0     0 ACCEPT     udp  --  *      *       0.0.0.0/0            192.168.3.0/24      
-    0     0 ACCEPT     udp  --  *      *       0.0.0.0/0            192.168.2.0/24      
-    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            192.168.1.0/24      
-    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            192.168.3.0/24      
-    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            192.168.2.0/24      
-    0     0 ACCEPT     icmp --  *      *       0.0.0.0/0            192.168.1.0/24       icmptype 0
-    0     0 ACCEPT     icmp --  *      *       0.0.0.0/0            192.168.1.0/24       icmptype 8
-    0     0 ACCEPT     icmp --  *      *       0.0.0.0/0            192.168.3.0/24       icmptype 0
-    0     0 ACCEPT     icmp --  *      *       0.0.0.0/0            192.168.3.0/24       icmptype 8
-    0     0 ACCEPT     icmp --  *      *       0.0.0.0/0            192.168.2.0/24       icmptype 0
-    0     0 ACCEPT     icmp --  *      *       0.0.0.0/0            192.168.2.0/24       icmptype 8
-
-[+] Setup Complete.
+sudo firewall -ti 80,443 -i 192.168.1.0/24 --simulate
 ```
 
+## Description of command line arguments
 
+| Argument | Description |
+|----------|----------|
+| `-to, --tcp-ports-out` | Allow outgoing TCP traffic to the specified ports |
+| `-ti, --tcp-ports-in` | Allow incoming TCP traffic to the specified ports |
+| `-uo, --udp-ports-out` | Allow outgoing UDP traffic to specified ports |
+| `-ui, --udp-ports-in` | Allow incoming UDP traffic to specified ports |
+| `-i, --inbound-hosts` | Allow incoming traffic from specified hosts/networks |
+| `-o, --outbound-hosts` | Allow outgoing traffic to specified hosts/networks |
+| `-x, --exclude-hosts` | Block traffic for specified hosts/networks |
+| `-c, --config` | Specify configuration file |
+| `-w, --windows-config` | Specify Windows configuration file |
+| `-f, --flush` | Reset all rules |
+| `-r, --reset` | Reset connections |
+| `-s, --simulate` | Simulate applying rules without actually applying them |
+| `-q, --quiet` | Quiet mode (no output) |
+| `-p, --disallow-ping` | Deny incoming ping requests |
+| `-icmp, --allow-outbound-icmp` | Allow outbound ICMP requests |
+| `-d, --disallow-dhcp` | Deny DHCP |
+| `-l, --log-exceptions` | Log exceptions |
+| `--deny-all` | Deny all traffic |
+| `--allow-all` | Allow all traffic |
+| `--info` | Show firewall information |
+| `--show-rules` | Show current rules |
+| `--wizard` | Run the wizard |
+
+## Usage examples for different scenarios
+
+### Web server setup
+
+```bash
+# Allow HTTP, HTTPS and SSH
+sudo firewall -ti 80,443,22 -x 10.0.0.0/8
+```
+
+### DNS server setup
+
+```bash
+# Allow DNS and DHCP
+sudo firewall -ti 53 -ui 53,67,68
+```
+
+### Workstation setup
+
+```bash
+# Basic rules with outgoing web traffic allowed
+sudo firewall -to 80,443,53 -uo 53 -p
+```
+
+## Support for different operating systems
+
+### Linux
+
+On Linux, the application uses iptables to manage the firewall. Root privileges (sudo) are required to work.
+
+### Windows
+
+On Windows, the application uses Windows Firewall via PowerShell. Administrator rights are required to work.
+
+Windows version features:
+- PowerShell commands are used to apply rules instead of iptables
+- Some Linux-specific features may work differently
+- PowerShell 3.0 or higher is required
+
+## Development and testing
+
+### Setting up the development environment
+
+```bash
+# Cloning the repository
+git
