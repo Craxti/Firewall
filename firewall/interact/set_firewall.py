@@ -49,7 +49,7 @@ class SetFirewall(BwCli):
         return rule_list
 
     def network_validator(self, network):
-        """Валидация сетевого адреса."""
+        """Network address validation."""
         try:
             ipaddr.IPNetwork(network)
         except Exception as e:

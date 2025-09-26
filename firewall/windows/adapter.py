@@ -215,8 +215,8 @@ class WindowsFirewallAdapter(BwCli):
 
         if self.verbose:
             net_str = ', '.join(networks)
-            ports_info = f" для портов {ports_str}" if ports_str else ""
-            print(f"[+] {'Разрешаем' if action == 'Allow' else 'Блокируем'} {protocol.upper()} {direction} {ports_info} для {net_str}")
+            ports_info = f" for ports {ports_str}" if ports_str else ""
+            print(f"[+] {'Allowing' if action == 'Allow' else 'Blocking'} {protocol.upper()} {direction} {ports_info} for {net_str}")
 
     def all_icmp(self, status=1):
         """Allow all ICMP traffic."""
@@ -249,7 +249,7 @@ class WindowsFirewallAdapter(BwCli):
 
     def all_icmp_network(self, status=1, networks='0.0.0.0/0'):
         """Allow ICMP traffic to specific networks."""
-        # Преобразуем networks в список
+        # Convert networks to list
         if isinstance(networks, str):
             networks = [networks]
 

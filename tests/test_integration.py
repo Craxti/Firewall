@@ -1,5 +1,5 @@
 """
-Интеграционные тесты для firewall.
+Integration tests for firewall.
 """
 import unittest
 import tempfile
@@ -11,14 +11,14 @@ from firewall.host_config.confighost import ConfigHost
 
 
 class TestFirewallIntegration(unittest.TestCase):
-    """Интеграционные тесты для firewall."""
+    """Integration tests for firewall."""
     
     def setUp(self):
-        """Настройка тестов."""
+        """Test setup."""
         self.temp_dir = tempfile.mkdtemp()
         self.config_file = os.path.join(self.temp_dir, 'test_config.ini')
         
-        # Создаем тестовый конфиг
+        # Create test config
         with open(self.config_file, 'w') as f:
             f.write("""
 [local_config]

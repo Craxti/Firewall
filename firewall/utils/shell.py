@@ -32,7 +32,7 @@ except (IOError, PermissionError) as e:
 
 
 class CommandError(Exception):
-    """Исключение для ошибок выполнения команд."""
+    """Exception for command execution errors."""
     
     def __init__(self, command, output=None, return_code=None):
         self.command = command
@@ -73,7 +73,7 @@ class Interact:
             
         try:
             if wait:
-                logger.debug(f"Запуск команды с ожиданием: {cmd}")
+                logger.debug(f"Starting command with wait: {cmd}")
                 process = subprocess.Popen(cmd, shell=True)
                 return_code = process.wait()
                 
@@ -93,7 +93,7 @@ class Interact:
                     if DEBUG or VERBOSE > 1:
                         print(output_str)
                         
-                    logger.debug(f"Результат выполнения команды: {output_str[:200]}...")
+                    logger.debug(f"Command execution result: {output_str[:200]}...")
                     return output_str
                 except subprocess.CalledProcessError as e:
                     logger.error(f"Error executing command: {cmd}, output: {e.output}, return code: {e.returncode}")
@@ -165,11 +165,11 @@ class Interact:
             if debug:
                 print(f'UID: {os.getuid()}')
             if os.getuid() != 0:
-                logger.error("Программа должна быть запущена с правами root")
+                logger.error("Program must be run with root privileges")
                 print("[-] Program MUST be run as sudo or root!\nUsage: sudo firewall <options>")
                 exit(1)
         except AttributeError:
-            # Windows check - использовать ctypes для проверки администратора
+            # Windows check - use ctypes to check administrator privileges
             import ctypes
             if not ctypes.windll.shell32.IsUserAnAdmin():
                 print("[-] Program MUST be run as Administrator in Windows!")
@@ -181,7 +181,7 @@ class Interact:
     def get_rhel_eth_ifaces(self):
         try:
             if platform.system().lower() == 'windows':
-                # Для Windows используем netsh
+                # For Windows use netsh
                 output = self.run_command("powershell.exe -Command \"Get-NetAdapter | Select-Object -ExpandProperty Name\"")
                 return [iface.strip() for iface in output.split('\n') if iface.strip()]
             else:
