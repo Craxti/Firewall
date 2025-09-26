@@ -1,92 +1,168 @@
+"""
+Тесты для Windows адаптера firewall.
+"""
 import unittest
-from unittest.mock import patch, MagicMock, call
-import os
 import sys
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+from unittest.mock import patch, MagicMock
 from firewall.windows.adapter import WindowsFirewallAdapter
 
 
 class TestWindowsFirewallAdapter(unittest.TestCase):
+    """Тесты для WindowsFirewallAdapter."""
     
     def setUp(self):
-        self.adapter = WindowsFirewallAdapter(verbose=0)
+        """Настройка тестов."""
+        self.adapter = WindowsFirewallAdapter(verbose=0, execute=False)
         self.adapter.command_list = []
     
-    @patch('subprocess.check_output')
-    def test_run_command(self, mock_check_output):
-        """Test that run_command correctly executes PowerShell commands"""
-        mock_check_output.return_value = b"command output"
-        
-        result = self.adapter.run_command("Get-NetFirewallRule")
-        
-        mock_check_output.assert_called_once()
-        args, kwargs = mock_check_output.call_args
-        self.assertTrue('powershell.exe' in args[0])
-        self.assertTrue('Get-NetFirewallRule' in args[0])
-        
-        self.assertEqual(result, "command output")
+    def test_init(self):
+        """Тест инициализации адаптера."""
+        self.assertEqual(self.adapter.verbose, 0)
+        self.assertFalse(self.adapter.execute)
+        self.assertEqual(self.adapter.rule_counter, 0)
+        self.assertEqual(len(self.adapter.command_list), 0)
     
-    @patch('firewall.windows.adapter.WindowsFirewallAdapter.run_command')
-    def test_flush_rules(self, mock_run_command):
-        """Test that flush_rules correctly creates PowerShell commands to remove rules"""
+    def test_generate_rule_name(self):
+        """Тест генерации имен правил."""
+        name1 = self.adapter._generate_rule_name("Test")
+        name2 = self.adapter._generate_rule_name("Test")
+        
+        self.assertEqual(name1, "Test_1")
+        self.assertEqual(name2, "Test_2")
+        self.assertEqual(self.adapter.rule_counter, 2)
+    
+    def test_flush_rules(self):
+        """Тест очистки правил."""
         self.adapter.flush_rules()
         
-        self.assertTrue(len(self.adapter.command_list) > 0)
-        for cmd in self.adapter.command_list:
-            self.assertTrue('Remove-NetFirewallRule' in cmd)
+        self.assertEqual(len(self.adapter.command_list), 1)
+        self.assertIn("Remove-NetFirewallRule", self.adapter.command_list[0])
+        self.assertIn("FirewallRule_*", self.adapter.command_list[0])
     
-    @patch('firewall.windows.adapter.WindowsFirewallAdapter.run_command')
-    def test_allow_dhcp(self, mock_run_command):
-        """Test that allow_dhcp creates correct rules for DHCP in Windows"""
+    def test_set_policy_accept(self):
+        """Тест установки политики ACCEPT."""
+        rules = self.adapter.set_policy("ACCEPT")
+        
+        self.assertEqual(len(rules), 2)
+        self.assertEqual(len(self.adapter.command_list), 2)
+        self.assertTrue(all("Allow" in rule for rule in rules))
+    
+    def test_set_policy_drop(self):
+        """Тест установки политики DROP."""
+        rules = self.adapter.set_policy("DROP")
+        
+        self.assertEqual(len(rules), 2)
+        self.assertEqual(len(self.adapter.command_list), 2)
+        self.assertTrue(all("Block" in rule for rule in rules))
+    
+    def test_allow_dhcp(self):
+        """Тест разрешения DHCP."""
         self.adapter.allow_dhcp()
         
-        self.assertTrue(len(self.adapter.command_list) > 0)
-        dhcp_commands = [cmd for cmd in self.adapter.command_list if '67' in cmd or '68' in cmd]
-        self.assertTrue(len(dhcp_commands) > 0)
+        self.assertEqual(len(self.adapter.command_list), 2)
+        self.assertTrue(any("DHCP_In" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("DHCP_Out" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("UDP" in cmd for cmd in self.adapter.command_list))
     
-    @patch('firewall.windows.adapter.WindowsFirewallAdapter.run_command')
-    def test_allow_ping(self, mock_run_command):
-        """Test that allow_ping creates rules for ICMP in Windows"""
+    def test_allow_ping(self):
+        """Тест разрешения ping."""
         self.adapter.allow_ping()
         
-        self.assertTrue(len(self.adapter.command_list) > 0)
-        icmp_commands = [cmd for cmd in self.adapter.command_list if 'ICMPv4' in cmd]
-        self.assertTrue(len(icmp_commands) > 0)
+        self.assertEqual(len(self.adapter.command_list), 4)
+        self.assertTrue(any("ICMP_In_EchoRequest" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("ICMP_In_EchoReply" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("ICMP_Out_EchoRequest" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("ICMP_Out_EchoReply" in cmd for cmd in self.adapter.command_list))
     
-    @patch('firewall.windows.adapter.WindowsFirewallAdapter.run_command')
-    def test_allow_network_transport(self, mock_run_command):
-        """Test that allow_network_transport creates rules for ports and protocols"""
+    def test_disallow_ping(self):
+        """Тест блокировки ping."""
+        self.adapter.disallow_ping()
+        
+        self.assertEqual(len(self.adapter.command_list), 1)
+        self.assertTrue(any("ICMP_Block_In" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("Block" in cmd for cmd in self.adapter.command_list))
+    
+    def test_allow_network_transport_tcp(self):
+        """Тест разрешения TCP трафика."""
         self.adapter.allow_network_transport(
             direction='inbound',
             protocol='tcp',
-            ports=['80'],
-            networks='192.168.1.0/24'
+            ports=[80, 443],
+            networks=['192.168.1.0/24'],
+            policy='ACCEPT'
         )
         
-        self.assertTrue(len(self.adapter.command_list) > 0)
-        for cmd in self.adapter.command_list:
-            self.assertTrue('New-NetFirewallRule' in cmd)
-            self.assertTrue('LocalPort 80' in cmd or 'RemotePort 80' in cmd)
-            self.assertTrue('192.168.1.0/24' in cmd)
-            self.assertTrue('Protocol TCP' in cmd)
+        self.assertEqual(len(self.adapter.command_list), 1)
+        cmd = self.adapter.command_list[0]
+        self.assertIn("TCP", cmd)
+        self.assertIn("Inbound", cmd)
+        self.assertIn("80,443", cmd)
+        self.assertIn("192.168.1.0/24", cmd)
+        self.assertIn("Allow", cmd)
     
-    @patch('firewall.windows.adapter.WindowsFirewallAdapter.run_command')
-    def test_process_commands(self, mock_run_command):
-        """Test that process_commands executes all commands in command_list"""
-        test_commands = [
-            "New-NetFirewallRule -Name 'Test1'",
-            "New-NetFirewallRule -Name 'Test2'"
-        ]
-        self.adapter.command_list = test_commands
+    def test_allow_network_transport_udp(self):
+        """Тест разрешения UDP трафика."""
+        self.adapter.allow_network_transport(
+            direction='outbound',
+            protocol='udp',
+            ports=[53],
+            networks=['8.8.8.8'],
+            policy='ACCEPT'
+        )
         
-        self.adapter.process_commands()
+        self.assertEqual(len(self.adapter.command_list), 1)
+        cmd = self.adapter.command_list[0]
+        self.assertIn("UDP", cmd)
+        self.assertIn("Outbound", cmd)
+        self.assertIn("53", cmd)
+        self.assertIn("8.8.8.8", cmd)
+        self.assertIn("Allow", cmd)
+    
+    def test_set_nostrike(self):
+        """Тест блокировки сетей."""
+        networks = ['192.168.1.0/24', '10.0.0.0/8']
+        self.adapter.set_nostrike(networks)
         
-        self.assertEqual(mock_run_command.call_count, len(test_commands))
-        for cmd in test_commands:
-            mock_run_command.assert_any_call(cmd)
+        self.assertEqual(len(self.adapter.command_list), 4)  # 2 сети * 2 направления
+        
+        for network in networks:
+            self.assertTrue(any(network in cmd for cmd in self.adapter.command_list))
+    
+    def test_allow_all(self):
+        """Тест разрешения всего трафика."""
+        self.adapter.allow_all()
+        
+        # Должны быть команды для очистки и установки политики ACCEPT
+        self.assertTrue(any("Remove-NetFirewallRule" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("Allow" in cmd for cmd in self.adapter.command_list))
+    
+    def test_deny_all(self):
+        """Тест блокировки всего трафика."""
+        self.adapter.deny_all()
+        
+        # Должны быть команды для очистки, установки политики DROP и разрешения связанных соединений
+        self.assertTrue(any("Remove-NetFirewallRule" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("Block" in cmd for cmd in self.adapter.command_list))
+        self.assertTrue(any("Related" in cmd for cmd in self.adapter.command_list))
+    
+    def test_invalid_direction(self):
+        """Тест неверного направления."""
+        with self.assertRaises(ValueError):
+            self.adapter.allow_network_transport(
+                direction='invalid',
+                protocol='tcp',
+                policy='ACCEPT'
+            )
+    
+    def test_invalid_protocol(self):
+        """Тест неверного протокола."""
+        with self.assertRaises(ValueError):
+            self.adapter.allow_network_transport(
+                direction='inbound',
+                protocol='invalid',
+                policy='ACCEPT'
+            )
 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()

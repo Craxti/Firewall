@@ -79,7 +79,7 @@ class Validation(object):
         key_map = self.field_type
         captured_errors = []
         missing_keys = []
-        print("{bold}[VALIDATING CONFIGURATION]{endc}\n".format(bold=Bcolors.OKBLUE, endc=Bcolors.ENDC))
+        print(f"{Bcolors.OKBLUE}[VALIDATING CONFIGURATION]{Bcolors.ENDC}\n")
         for key in key_map:
             try:
                 conf_key = config_obj.configs.get(key)
@@ -103,36 +103,28 @@ class Validation(object):
                         else:
                             pass
                         if valid == False:
-                            FAIL = "[{red}FAIL{endred}] in configuration :: Check {key} setting: {value}".format(
-                                key=key, value=value, red=Bcolors.FAIL, endred=Bcolors.ENDC)
+                            FAIL = f"[{Bcolors.FAIL}FAIL{Bcolors.ENDC}] in configuration :: Check {key} setting: {value}"
                             captured_errors.append(FAIL)
                             if self.verbose:
                                 print(FAIL)
                         else:
                             if self.verbose:
-                                print("[{green}OK{endgreen}] {value} is a valid setting for {key}".format(value=value,
-                                                                                                          key=key,
-                                                                                                          green=Bcolors.OKGREEN,
-                                                                                                          endgreen=Bcolors.ENDC))
+                                print(f"[{Bcolors.OKGREEN}OK{Bcolors.ENDC}] {value} is a valid setting for {key}")
             except Exception as e:
                 print(e)
         if missing_keys:
             for key in missing_keys:
-                WARNING = "{warning_c}[WARNING]{warning_end} No setting for {key} was found.".format(
-                    warning_c=Bcolors.WARNING, warning_end=Bcolors.ENDC, key=key)
+                WARNING = f"{Bcolors.WARNING}[WARNING]{Bcolors.ENDC} No setting for {key} was found."
                 print(WARNING)
 
         if captured_errors:
-            CONFIG_ERROR = "{error_count} errors detect. Please verify your settings in {config}".format(
-                error_count=len(captured_errors), config=self.config)
+            CONFIG_ERROR = f"{len(captured_errors)} errors detect. Please verify your settings in {self.config}"
             if self.verbose:
-                print("\n\n" + "=" * 10 + 'ERROR REPORT' + "=" * 10)
+                print(f"\n\n{'=' * 10}ERROR REPORT{'=' * 10}")
                 for error in captured_errors:
                     print(error)
             print(CONFIG_ERROR)
             exit()
         else:
-            print("{newline}[{green}VALID CONFIG{endgreen}] No Errors Detected.".format(newline="=" * 30 + '\n',
-                                                                                        green=Bcolors.OKGREEN,
-                                                                                        endgreen=Bcolors.ENDC))
+            print(f"{'=' * 30}\n[{Bcolors.OKGREEN}VALID CONFIG{Bcolors.ENDC}] No Errors Detected.")
         return

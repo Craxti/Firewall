@@ -19,14 +19,14 @@ class AOR(object):
         else:
             self.configs = self.get_config_from_file(config)
             if self.debug:
-                print self.configs
+                print(self.configs)
 
     def get_config_from_file(self, config_path, write_json=False, json_out='config.json'):
         if self.debug:
-            print "{config_path}: ".format(config_path=config_path),
+            print(f"{config_path}: ", end="")
         if not os.path.isfile(config_path):
             if self.verbose:
-                print "getting config from wizard"
+                print("getting config from wizard")
             return
 
         with open(config_path, 'r') as infile:
@@ -41,21 +41,21 @@ class AOR(object):
 
         for line in rawconfigs:
             try:
-                if line.strip()[:1] is '#':
+                if line.strip()[:1] == '#':
                     continue
                 k, v = line.strip().split("=")
             except ValueError:
                 continue
             k = k.lower()
             if self.debug:
-                print k, v
+                print(k, v)
             try:
                 configs[k].append(v)
             except KeyError:
                 configs[k] = []
                 configs[k].append(v)
         if self.debug:
-            print configs
+            print(configs)
 
         if write_json:
             try:
@@ -78,19 +78,19 @@ class AOR(object):
             try:
                 for target_range in self.configs['target_range']:
                     if self.verbose:
-                        print "Adding target range:\t" + target_range
+                        print(f"Adding target range:\t{target_range}")
                     target_file.write(target_range + '\n')
             except:
                 if self.verbose:
-                    print "No target ranges set in " + path
+                    print(f"No target ranges set in {path}")
             try:
                 for target_host in self.configs['target_host']:
                     if self.verbose:
-                        print "Adding target host:\t" + target_host
+                        print(f"Adding target host:\t{target_host}")
                     target_file.write(target_host + '\n')
             except:
                 if self.verbose:
-                    print "No target hosts set in " + path
+                    print(f"No target hosts set in {path}")
         return
 
     def trusted_parser(self, path):
@@ -104,27 +104,27 @@ class AOR(object):
             try:
                 for trusted_range in self.configs['trusted_range']:
                     if self.verbose:
-                        print "Adding trusted range:\t" + trusted_range
+                        print(f"Adding trusted range:\t{trusted_range}")
 
                     if self.legacy:
                         trusted_file.write(trusted_range + '\n')
             except:
                 if self.verbose:
-                    print "No trusted ranges set in " + path
+                    print(f"No trusted ranges set in {path}")
 
             try:
                 for trusted_host in self.configs['trusted_host']:
                     if self.verbose:
-                        print "Adding trusted host:\t" + trusted_host
+                        print(f"Adding trusted host:\t{trusted_host}")
                     if self.legacy:
                         trusted_file.write(trusted_host + '\n')
             except:
                 if self.verbose:
-                    print "No trusted hosts set in " + path
+                    print(f"No trusted hosts set in {path}")
 
             try:
                 win_ipaddr = self.configs['win_ipaddr'][0]
-                print "Adding Win IP as trusted host:\t" + win_ipaddr
+                print(f"Adding Win IP as trusted host:\t{win_ipaddr}")
                 if self.legacy:
                     trusted_file.write(win_ipaddr + '\n')
             except:
@@ -146,5 +146,5 @@ class AOR(object):
 
             except:
                 if self.verbose:
-                    print "No NOSTRIKE set in " + path
+                    print(f"No NOSTRIKE set in {path}")
         return

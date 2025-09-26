@@ -36,26 +36,24 @@ class SetFirewall(BwCli):
     DISALLOW_NET_ICMP = '1 -d {net} -p icmp -j DROP'
 
     # COLOR OUTPUT
-    GREEN_PLUS = "[{green}+{endc}]".format(green=Bcolors.OKGREEN, endc=Bcolors.ENDC)
-    OUTBOUND_C = "{obc}outbound{endc}".format(obc=Bcolors.BOLD, endc=Bcolors.ENDC)
-    INBOUND_C = "{obc}outbound{endc}".format(obc=Bcolors.BOLD, endc=Bcolors.ENDC)
+    GREEN_PLUS = f"[{Bcolors.OKGREEN}+{Bcolors.ENDC}]"
+    OUTBOUND_C = f"{Bcolors.BOLD}outbound{Bcolors.ENDC}"
+    INBOUND_C = f"{Bcolors.BOLD}outbound{Bcolors.ENDC}"
 
     def rule_builder(self, argument, append_rule=None, chain_options='iof'):
         chains = {'i': 'INPUT', 'o': 'OUTPUT', 'f': 'FORWARD'}
         if append_rule is not None:
-            rule_list = ['iptables -{argument} {chain} {append_rule}'.format(chain=chains[i], argument=argument,
-                                                                             append_rule=append_rule) for i in
-                         chain_options]
+            rule_list = [f'iptables -{argument} {chains[i]} {append_rule}' for i in chain_options]
         else:
-            rule_list = ['iptables -{argument} {chain}'.format(chain=chains[i], argument=argument) for i in
-                         chain_options]
+            rule_list = [f'iptables -{argument} {chains[i]}' for i in chain_options]
         return rule_list
 
     def network_validator(self, network):
+        """Валидация сетевого адреса."""
         try:
             ipaddr.IPNetwork(network)
         except Exception as e:
-            raise Exception("Please validate your subnet. Valid input: 192.168.0.0/24")
+            raise ValueError(f"Invalid network format: {network}. Valid format: 192.168.0.0/24. Error: {str(e)}")
         return True
 
     def data_validator(self, data):
@@ -70,7 +68,7 @@ class SetFirewall(BwCli):
         rules = self.rule_builder('F')
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print('{gp} Rules Flushed!'.format(gp=self.GREEN_PLUS))
+            print(f'{self.GREEN_PLUS} Rules Flushed!')
         return
 
     def set_policy(self, policy):
@@ -80,57 +78,57 @@ class SetFirewall(BwCli):
         return rules
 
     def set_defaults(self):
+        """Set default firewall policy to DROP."""
         self.set_policy('DROP')
         self.allow_related_conn()
-        return
 
     def log_exceptions(self):
+        """Enable logging of blocked packets."""
         rules = self.rule_builder('A', append_rule='-m limit --limit 5/min -j LOG')
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print('{gp} Logging Exceptions'.format(gp=self.GREEN_PLUS))
+            print(f'{self.GREEN_PLUS} Logging Exceptions')
         return rules
 
     def allow_localhost(self):
+        """Allow localhost traffic."""
         rules = self.rule_builder('I', chain_options='io', append_rule='-s 127.0.0.1/8 -d 127.0.0.1/8 -j ACCEPT')
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print("{gp} Allowing traffic for localhost.".format(gp=self.GREEN_PLUS))
-        return
+            print(f"{self.GREEN_PLUS} Allowing traffic for localhost.")
 
     def allow_all(self):
+        """Allow all traffic."""
         # FLUSH RULES
         self.flush_rules()
         rules = self.set_policy('ACCEPT')
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print("{gp} Allowing all...".format(gp=self.GREEN_PLUS))
-        return
+            print(f"{self.GREEN_PLUS} Allowing all...")
 
     def deny_all(self):
+        """Deny all traffic."""
         # FLUSH RULES
         self.set_defaults()
         self.allow_localhost()
         if self.args.log_exceptions:
             self.log_exceptions()
         if self.verbose > 0:
-            print("{gp} Disallowing all...".format(gp=self.GREEN_PLUS))
-        return
+            print(f"{self.GREEN_PLUS} Disallowing all...")
 
     def allow_dhcp(self):
+        """Allow DHCP traffic."""
         rules = self.rule_builder('I', chain_options='io', append_rule=self.ALLOW_DHCP)
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print("{gp} Allowing DHCP...".format(gp=self.GREEN_PLUS))
-        return
+            print(f"{self.GREEN_PLUS} Allowing DHCP...")
 
     def disallow_dhcp(self):
+        """Disallow DHCP traffic."""
         rules = self.rule_builder('I', chain_options='io', append_rule=self.DISALLOW_DHCP)
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print(
-            "{gp}{red} Disallowing {endc} DHCP...".format(gp=self.GREEN_PLUS, red=Bcolors.FAIL, endc=Bcolors.ENDC))
-        return
+            print(f"{self.GREEN_PLUS}{Bcolors.FAIL} Disallowing {Bcolors.ENDC} DHCP...")
 
     def all_icmp(self, status=1):
         if status == 0:
@@ -141,7 +139,7 @@ class SetFirewall(BwCli):
             rules = self.rule_builder('I', chain_options='o', append_rule=' 1 -p icmp -j ACCEPT')
             self.command_list.extend(rules)
         if self.verbose > 0:
-            print("{gp} Allowing {outbound} ICMP...".format(gp=self.GREEN_PLUS, outbound=self.OUTBOUND_C))
+            print(f"{self.GREEN_PLUS} Allowing {self.OUTBOUND_C} ICMP...")
         return
 
     def all_icmp_network(self, status=1, networks='0.0.0.0/0'):
@@ -152,18 +150,16 @@ class SetFirewall(BwCli):
                 # STATUS 0 allows just Ping, set to 1 to allow ALL
                 if status == 0:
                     rules = self.rule_builder('I', chain_options='o',
-                                              append_rule=self.ALLOW_NET_ICMP_8.format(net=network))
+                                              append_rule=f'1 -d {network} -p icmp --icmp-type 8 -j ACCEPT')
                     rules += self.rule_builder('I', chain_options='o',
-                                               append_rule=self.ALLOW_NET_ICMP_0.format(net=network))
+                                               append_rule=f'1 -d {network} -p icmp --icmp-type 0 -j ACCEPT')
                     self.command_list.extend(rules)
                 else:
                     rules = self.rule_builder('I', chain_options='o',
-                                              append_rule=self.ALLOW_NET_ICMP.format(net=network))
+                                              append_rule=f'1 -d {network} -p icmp -j ACCEPT')
                     self.command_list.extend(rules)
                 if self.verbose > 0:
-                    print(
-                    "{gp} Allowing {outbound} ICMP/traceroute to {net}...".format(net=network, outbound=self.OUTBOUND_C,
-                                                                                  gp=self.GREEN_PLUS))
+                    print(f"{self.GREEN_PLUS} Allowing {self.OUTBOUND_C} ICMP/traceroute to {network}...")
         except:
             raise Exception("[!] Could not parse subnet. Please ensure proper format: 192.168.0.0/24")
         return
@@ -176,28 +172,29 @@ class SetFirewall(BwCli):
         rules += self.rule_builder('I', chain_options='o', append_rule=self.ALLOW_ICMP_8)
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print("{gp} Respond to pings...".format(gp=self.GREEN_PLUS))
+            print(f"{self.GREEN_PLUS} Respond to pings...")
         return
 
     def disallow_ping(self):
         rules = self.rule_builder('I', chain_options='i', append_rule=self.DISALLOW_ICMP_8)
         self.command_list.extend(rules)
         if self.verbose > 0:
-            print("{gp} Disallowing incoming pings...".format(gp=self.GREEN_PLUS))
+            print(f"{self.GREEN_PLUS} Disallowing incoming pings...")
         return
 
-    def set_nostrike(self, networks=[]):
+    def set_nostrike(self, networks=None):
+        """Block traffic to/from specified networks."""
+        if networks is None:
+            networks = []
         networks = self.data_validator(networks)
         if networks:
             rules = []
             for network in networks:
-                rules += self.rule_builder('I', chain_options='i', append_rule='1 -s {net} -j DROP'.format(net=network))
-                rules += self.rule_builder('I', chain_options='o', append_rule='1 -d {net} -j DROP'.format(net=network))
+                rules += self.rule_builder('I', chain_options='i', append_rule=f'1 -s {network} -j DROP')
+                rules += self.rule_builder('I', chain_options='o', append_rule=f'1 -d {network} -j DROP')
                 if self.verbose:
-                    print("{gp} {red}DISALLOWING{endr} traffic to {net} ".format(net=network, red=Bcolors.FAIL,
-                                                                                 endr=Bcolors.ENDC, gp=self.GREEN_PLUS))
+                    print(f"{self.GREEN_PLUS} {Bcolors.FAIL}DISALLOWING{Bcolors.ENDC} traffic to {network} ")
             self.command_list.extend(rules)
-        return
 
     def reset_conn(self):
         rules = self.rule_builder('A', append_rule='-j REJECT')
@@ -214,10 +211,12 @@ class SetFirewall(BwCli):
             print("{gp} Allowing related connections...".format(gp=self.GREEN_PLUS))
         return
 
-    def allow_outbound_transport(self, protocol='tcp', ports=[]):
+    def allow_outbound_transport(self, protocol='tcp', ports=None):
+        if ports is None:
+            ports = []
         allowed_protocols = ['tcp', 'udp']
         if protocol not in allowed_protocols:
-            raise Exception('[!] Protocol must be udp or tcp')
+            raise ValueError('[!] Protocol must be udp or tcp')
         if len(ports) == 0:
             rules = self.rule_builder('I', chain_options='o',
                                       append_rule='1 -p {protocol} -j ACCEPT'.format(protocol=protocol))
@@ -238,14 +237,17 @@ class SetFirewall(BwCli):
                                                                                                 protocol=protocol.upper()))
         return
 
-    def allow_network_transport(self, direction=None, trusted=False, protocol='tcp', ports=[], networks='0.0.0.0', policy='ACCEPT'):
+    def allow_network_transport(self, direction=None, trusted=False, protocol='tcp', ports=None, networks='0.0.0.0', policy='ACCEPT'):
         if direction is None:
-            raise Exception("[-] Must specify a direction!\nOptions: inbound, outbound")
+            raise ValueError("[-] Must specify a direction!\nOptions: inbound, outbound")
+
+        if ports is None:
+            ports = []
 
         direction_map = {'inbound': 'i', 'outbound': 'o'}
         policy_accept = ['ACCEPT', 'DROP', 'REJECT']
         if policy not in policy_accept:
-            raise Exception('Policy must be either ACCEPT, DROP or REJECT')
+            raise ValueError('Policy must be either ACCEPT, DROP or REJECT')
 
         allowed_protocols = ['tcp', 'udp']
         ports = ','.join([str(p) for p in ports])
@@ -285,7 +287,7 @@ class SetFirewall(BwCli):
                                 ports=ports, protocol=protocol.upper(),
                                 direction=Bcolors.BOLD + direction + Bcolors.ENDC, gp=self.GREEN_PLUS, net=network))
         except Exception as e:
-            raise Exception("[-] Rule could not be applied.\nReason: %s" % e)
+            raise RuntimeError(f"Failed to apply network transport rule. Reason: {str(e)}")
         return
 
     def outbound_host(self):

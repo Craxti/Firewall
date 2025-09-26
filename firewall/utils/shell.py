@@ -32,11 +32,18 @@ except (IOError, PermissionError) as e:
 
 
 class CommandError(Exception):
+    """Исключение для ошибок выполнения команд."""
+    
     def __init__(self, command, output=None, return_code=None):
         self.command = command
         self.output = output
         self.return_code = return_code
-        super().__init__(f"{command}, в{output}, {return_code}")
+        error_msg = f"Command failed: {command}"
+        if return_code is not None:
+            error_msg += f", return code: {return_code}"
+        if output:
+            error_msg += f", output: {output}"
+        super().__init__(error_msg)
 
 
 class Interact:
@@ -61,7 +68,7 @@ class Interact:
             cmd += stderr_redirect
             
         if DEBUG or VERBOSE > 1:
-            print("$ " + cmd)
+            print(f"$ {cmd}")
             logger.debug(f"Executing the command: {cmd}")
             
         try:
@@ -156,7 +163,7 @@ class Interact:
         try:
             # Linux check
             if debug:
-                print('UID: ' + str(os.getuid()))
+                print(f'UID: {os.getuid()}')
             if os.getuid() != 0:
                 logger.error("Программа должна быть запущена с правами root")
                 print("[-] Program MUST be run as sudo or root!\nUsage: sudo firewall <options>")

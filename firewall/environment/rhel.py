@@ -60,7 +60,7 @@ class config(object):
     def create_rhel_eth_config(self):
         config_path = self.ETH_CONFIG_PATH + self.ethIFName
         if self.verbose or self.debug:
-            print("writing eth config to " + config_path)
+            print(f"writing eth config to {config_path}")
 
         dns_addr = self.value_extract('dns')
         rh_ipaddr = self.value_extract('rh_ipaddr')
@@ -104,12 +104,12 @@ class config(object):
     def cycle_rhel_ethernet(self, restart_network=False):
         self.it.run_command("ifdown " + self.ethIFName)
         if self.verbose:
-            print("[+] Interface {name} shutdown.".format(name=self.ethIFName))
+            print(f"[+] Interface {self.ethIFName} shutdown.")
         if restart_network:
             self.restart_network_service()
         self.it.run_command("ifup " + self.ethIFName)
         if self.verbose:
-            print("[+] Interface {name} brought up.".format(name=self.ethIFName))
+            print(f"[+] Interface {self.ethIFName} brought up.")
 
     def restart_network_service(self):
         self.it.run_command("systemctl restart network")
@@ -130,14 +130,14 @@ class config(object):
             if target_file:
                 AOR.target_parser(target_file)
                 if self.verbose:
-                    print("[+] Target file written to {target_file}".format(target_file=target_file))
+                    print(f"[+] Target file written to {target_file}")
 
             if trusted_file:
                 AOR.trusted_parser(trusted_file)
                 if self.verbose:
-                    print("[+] Trusted file written to {trusted_file}".format(trusted_file=trusted_file))
+                    print(f"[+] Trusted file written to {trusted_file}")
 
             if nostrikes_file:
                 AOR.trusted_parser(nostrikes_file)
                 if self.verbose:
-                    print("[+] No-strikes file written to {nostrikes_file}".format(nostrikes_file=nostrikes_file))
+                    print(f"[+] No-strikes file written to {nostrikes_file}")
