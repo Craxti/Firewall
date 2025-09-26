@@ -69,7 +69,7 @@ class TestPingSweep:
     def test_ping_sweep_initialization_invalid_subnet(self):
         """Test pingSweep initialization with invalid subnet."""
         with pytest.raises(Exception) as exc_info:
-            ping_sweep(subnet='invalid_subnet')
+            pingSweep(subnet='invalid_subnet')
         
         # The error message may vary, just check that an exception was raised
         assert exc_info.value is not None
