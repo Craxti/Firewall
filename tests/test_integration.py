@@ -189,10 +189,14 @@ nostrike=192.168.1.5/32
     @patch('firewall.utils.shell.Interact')
     @patch('sys.argv', ['firewall'])
     @patch('firewall.utils.shell.Interact.root_check')
-    def test_config_host_integration(self, mock_root_check, mock_interact):
+    @patch('firewall.base.validation.Validation.eth_iface_check')
+    @patch('firewall.utils.shell.Interact.run_command')
+    def test_config_host_integration(self, mock_run_command, mock_eth_iface_check, mock_root_check, mock_interact):
         """Test ConfigHost integration."""
         mock_interact.return_value.root_check.return_value = None
         mock_root_check.return_value = None
+        mock_eth_iface_check.return_value = True  # Mock eth_iface_check to return True
+        mock_run_command.return_value = "eth0\neth1\nwlan0"  # Mock network interfaces
         
         # Create ConfigHost with test config
         config_host = ConfigHost(config_in=self.config_file, VERBOSE=False)
