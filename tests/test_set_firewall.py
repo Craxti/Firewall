@@ -59,14 +59,14 @@ class TestSetFirewall(unittest.TestCase):
     def test_allow_all(self):
         """Test allow_all method correctly sets ACCEPT policy"""
         self.firewall.allow_all()
-        # Проверяем, что правила сброшены и установлена политика ACCEPT
+        # Check that rules are flushed and ACCEPT policy is set
         self.assertTrue(any(['iptables -F' in cmd for cmd in self.firewall.command_list]))
         self.assertTrue(any(['iptables -P' in cmd and 'ACCEPT' in cmd for cmd in self.firewall.command_list]))
         
     def test_deny_all(self):
         """Test deny_all method correctly sets DROP policy"""
         self.firewall.deny_all()
-        # Проверяем, что установлена политика DROP и разрешен localhost
+        # Check that DROP policy is set and localhost is allowed
         self.assertTrue(any(['iptables -P' in cmd and 'DROP' in cmd for cmd in self.firewall.command_list]))
         self.assertTrue(any(['127.0.0.1/8' in cmd for cmd in self.firewall.command_list]))
         
@@ -80,7 +80,7 @@ class TestSetFirewall(unittest.TestCase):
         """Test allow_ping method correctly adds ping allow rules"""
         self.firewall.allow_ping()
         self.assertEqual(len(self.firewall.command_list), 4)
-        # Проверяем наличие правил для icmp type 0 и 8 на вход и выход
+        # Check for rules for icmp type 0 and 8 on input and output
         icmp_types = [cmd for cmd in self.firewall.command_list if 'icmp' in cmd]
         self.assertEqual(len(icmp_types), 4)
         
@@ -88,9 +88,9 @@ class TestSetFirewall(unittest.TestCase):
         """Test set_nostrike method correctly adds drop rules for specified networks"""
         networks = ['192.168.1.0/24', '10.0.0.0/8']
         self.firewall.set_nostrike(networks)
-        # Должно быть 4 правила (по 2 на каждую сеть - для INPUT и OUTPUT)
+        # Should be 4 rules (2 per network - for INPUT and OUTPUT)
         self.assertEqual(len(self.firewall.command_list), 4)
-        # Проверяем что все сети включены в правила
+        # Check that all networks are included in rules
         for network in networks:
             self.assertTrue(any([network in cmd for cmd in self.firewall.command_list]))
             
@@ -102,12 +102,12 @@ class TestSetFirewall(unittest.TestCase):
         
     def test_data_validator(self):
         """Test data_validator correctly handles strings and lists"""
-        # Проверка строки
+        # String check
         result = self.firewall.data_validator('192.168.1.0/24')
         self.assertIsInstance(result, list)
         self.assertEqual(result, ['192.168.1.0/24'])
         
-        # Проверка списка
+        # List check
         input_list = ['192.168.1.0/24', '10.0.0.0/8']
         result = self.firewall.data_validator(input_list)
         self.assertEqual(result, input_list)

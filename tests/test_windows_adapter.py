@@ -1,5 +1,5 @@
 """
-Тесты для Windows адаптера firewall.
+Tests for Windows firewall adapter.
 """
 import unittest
 import sys
@@ -8,22 +8,22 @@ from firewall.windows.adapter import WindowsFirewallAdapter
 
 
 class TestWindowsFirewallAdapter(unittest.TestCase):
-    """Тесты для WindowsFirewallAdapter."""
+    """Tests for WindowsFirewallAdapter."""
     
     def setUp(self):
-        """Настройка тестов."""
+        """Test setup."""
         self.adapter = WindowsFirewallAdapter(verbose=0, execute=False)
         self.adapter.command_list = []
     
     def test_init(self):
-        """Тест инициализации адаптера."""
+        """Test adapter initialization."""
         self.assertEqual(self.adapter.verbose, 0)
         self.assertFalse(self.adapter.execute)
         self.assertEqual(self.adapter.rule_counter, 0)
         self.assertEqual(len(self.adapter.command_list), 0)
     
     def test_generate_rule_name(self):
-        """Тест генерации имен правил."""
+        """Test rule name generation."""
         name1 = self.adapter._generate_rule_name("Test")
         name2 = self.adapter._generate_rule_name("Test")
         
@@ -32,7 +32,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertEqual(self.adapter.rule_counter, 2)
     
     def test_flush_rules(self):
-        """Тест очистки правил."""
+        """Test rule cleanup."""
         self.adapter.flush_rules()
         
         self.assertEqual(len(self.adapter.command_list), 1)
@@ -40,7 +40,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertIn("FirewallRule_*", self.adapter.command_list[0])
     
     def test_set_policy_accept(self):
-        """Тест установки политики ACCEPT."""
+        """Test ACCEPT policy setup."""
         rules = self.adapter.set_policy("ACCEPT")
         
         self.assertEqual(len(rules), 2)
@@ -48,7 +48,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertTrue(all("Allow" in rule for rule in rules))
     
     def test_set_policy_drop(self):
-        """Тест установки политики DROP."""
+        """Test DROP policy setup."""
         rules = self.adapter.set_policy("DROP")
         
         self.assertEqual(len(rules), 2)
@@ -56,7 +56,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertTrue(all("Block" in rule for rule in rules))
     
     def test_allow_dhcp(self):
-        """Тест разрешения DHCP."""
+        """Test DHCP allowance."""
         self.adapter.allow_dhcp()
         
         self.assertEqual(len(self.adapter.command_list), 2)
@@ -65,7 +65,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertTrue(any("UDP" in cmd for cmd in self.adapter.command_list))
     
     def test_allow_ping(self):
-        """Тест разрешения ping."""
+        """Test ping allowance."""
         self.adapter.allow_ping()
         
         self.assertEqual(len(self.adapter.command_list), 4)
@@ -75,7 +75,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertTrue(any("ICMP_Out_EchoReply" in cmd for cmd in self.adapter.command_list))
     
     def test_disallow_ping(self):
-        """Тест блокировки ping."""
+        """Test ping blocking."""
         self.adapter.disallow_ping()
         
         self.assertEqual(len(self.adapter.command_list), 1)
@@ -83,7 +83,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertTrue(any("Block" in cmd for cmd in self.adapter.command_list))
     
     def test_allow_network_transport_tcp(self):
-        """Тест разрешения TCP трафика."""
+        """Test TCP traffic allowance."""
         self.adapter.allow_network_transport(
             direction='inbound',
             protocol='tcp',
@@ -101,7 +101,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertIn("Allow", cmd)
     
     def test_allow_network_transport_udp(self):
-        """Тест разрешения UDP трафика."""
+        """Test UDP traffic allowance."""
         self.adapter.allow_network_transport(
             direction='outbound',
             protocol='udp',
@@ -119,34 +119,34 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
         self.assertIn("Allow", cmd)
     
     def test_set_nostrike(self):
-        """Тест блокировки сетей."""
+        """Test network blocking."""
         networks = ['192.168.1.0/24', '10.0.0.0/8']
         self.adapter.set_nostrike(networks)
         
-        self.assertEqual(len(self.adapter.command_list), 4)  # 2 сети * 2 направления
+        self.assertEqual(len(self.adapter.command_list), 4)  # 2 networks * 2 directions
         
         for network in networks:
             self.assertTrue(any(network in cmd for cmd in self.adapter.command_list))
     
     def test_allow_all(self):
-        """Тест разрешения всего трафика."""
+        """Test all traffic allowance."""
         self.adapter.allow_all()
         
-        # Должны быть команды для очистки и установки политики ACCEPT
+        # Should have commands for cleanup and ACCEPT policy setup
         self.assertTrue(any("Remove-NetFirewallRule" in cmd for cmd in self.adapter.command_list))
         self.assertTrue(any("Allow" in cmd for cmd in self.adapter.command_list))
     
     def test_deny_all(self):
-        """Тест блокировки всего трафика."""
+        """Test all traffic blocking."""
         self.adapter.deny_all()
         
-        # Должны быть команды для очистки, установки политики DROP и разрешения связанных соединений
+        # Should have commands for cleanup, DROP policy setup and related connections allowance
         self.assertTrue(any("Remove-NetFirewallRule" in cmd for cmd in self.adapter.command_list))
         self.assertTrue(any("Block" in cmd for cmd in self.adapter.command_list))
         self.assertTrue(any("Related" in cmd for cmd in self.adapter.command_list))
     
     def test_invalid_direction(self):
-        """Тест неверного направления."""
+        """Test invalid direction."""
         with self.assertRaises(ValueError):
             self.adapter.allow_network_transport(
                 direction='invalid',
@@ -155,7 +155,7 @@ class TestWindowsFirewallAdapter(unittest.TestCase):
             )
     
     def test_invalid_protocol(self):
-        """Тест неверного протокола."""
+        """Test invalid protocol."""
         with self.assertRaises(ValueError):
             self.adapter.allow_network_transport(
                 direction='inbound',
