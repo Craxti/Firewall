@@ -37,13 +37,25 @@ class WindowsFirewallAdapter(BwCli):
             process.wait()
             return None
         else:
-            output = subprocess.check_output(powershell_cmd, shell=True)
-            output_str = output.decode('utf-8', errors='replace')
+            try:
+                output = subprocess.check_output(powershell_cmd, shell=True, stderr=subprocess.STDOUT)
+                output_str = output.decode('utf-8', errors='replace')
 
-            if self.verbose > 1:
-                print(output_str)
+                if self.verbose > 1:
+                    print(output_str)
 
-            return output_str
+                return output_str
+            except subprocess.CalledProcessError as e:
+                if self.verbose:
+                    print(f"[WARNING] PowerShell command failed: {e}")
+                    print(f"[WARNING] Command: {powershell_cmd}")
+                    if e.output:
+                        print(f"[WARNING] Output: {e.output.decode('utf-8', errors='replace')}")
+                return None
+            except Exception as e:
+                if self.verbose:
+                    print(f"[ERROR] Unexpected error executing PowerShell command: {e}")
+                return None
 
     def process_commands(self):
         """Process all queued commands."""
@@ -68,6 +80,7 @@ class WindowsFirewallAdapter(BwCli):
 
         if self.verbose:
             print("[+] Flushing Windows firewall rules")
+            print("[!] Note: This command requires Administrator privileges")
 
     def set_policy(self, policy):
         """Set default firewall policy."""

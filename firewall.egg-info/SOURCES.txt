@@ -1,5 +1,6 @@
 LICENSE
 README.md
+pyproject.toml
 setup.py
 bin/__init__.py
 bin/bs
@@ -27,5 +28,9 @@ firewall/utils/ipaddr.py
 firewall/utils/shell.py
 firewall/utils/superset.py
 firewall/utils/whiptail.py
+firewall/windows/__init__.py
+firewall/windows/adapter.py
 tests/__init__.py
+tests/test_integration.py
 tests/test_set_firewall.py
+tests/test_windows_adapter.py

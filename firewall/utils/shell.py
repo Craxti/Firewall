@@ -87,21 +87,21 @@ class Interact:
             else:
                 logger.debug(f"Run command: {cmd}")
                 try:
-                    output = subprocess.check_output(cmd, shell=True, stderr=subprocess.PIPE)
-                    output_str = output.decode('utf-8', errors='replace')
+                    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout, stderr = process.communicate()
+                    output_str = stdout.decode('utf-8', errors='replace')
                     
                     if DEBUG or VERBOSE > 1:
                         print(output_str)
                         
                     logger.debug(f"Command execution result: {output_str[:200]}...")
                     return output_str
-                except subprocess.CalledProcessError as e:
-                    logger.error(f"Error executing command: {cmd}, output: {e.output}, return code: {e.returncode}")
+                except Exception as e:
+                    logger.error(f"Error executing command: {cmd}, error: {e}")
                     if VERBOSE > 0:
                         print(f"[-] Command execution error: {cmd}")
-                        print(f"[-]  {e.output}")
-                        print(f"[-]  {e.returncode}")
-                    raise CommandError(cmd, output=e.output, return_code=e.returncode)
+                        print(f"[-]  {e}")
+                    raise CommandError(cmd, return_code=1)
         except Exception as e:
             logger.error(f"Unhandled exception while executing command: {cmd}, error: {str(e)}")
             if VERBOSE > 0:

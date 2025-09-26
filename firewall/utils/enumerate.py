@@ -5,8 +5,19 @@ from firewall.environment.rhel import config
 from firewall.utils.shell import Interact
 from firewall.utils.shell import Bcolors
 from firewall.utils import ipaddr
-from Queue import Queue
+try:
+    from Queue import Queue  # Python 2
+except ImportError:
+    from queue import Queue  # Python 3
 from threading import Thread
+try:
+    # Python 3
+    from queue import Empty as QueueEmpty
+except ImportError:  # pragma: no cover
+    # Python 2 fallback
+    from Queue import Empty as QueueEmpty
+import platform
+import os
 import subprocess
 import random
 
@@ -54,24 +65,51 @@ class pingSweep(BsCli):
         return self.subnet
 
     def pinger(self, i, q):
-        """PING SUBNET"""
+        """PING SUBNET without blocking indefinitely when queue is empty."""
         nostrike = None
-        # ACCOUNTS FOR IPS IN NO STRIKE -- THEY WILL NOT BE TOUCHED
+        # Prepare no-strike list as strings if configured
         if self.nostrike:
             nostrike = [str(x) for b in self.nostrike for x in ipaddr.IPNetwork(b)]
 
+        # Prepare cross-platform ping command template
+        is_windows = platform.system().lower() == 'windows'
+        if is_windows:
+            # -n 1 one echo, -w 1000 timeout in ms
+            ping_tpl = "ping -n 1 -w 1000 %s"
+        else:
+            # -c 1 one echo, -W 1 timeout in seconds
+            ping_tpl = "ping -c 1 -W 1 %s"
+
+        devnull_path = os.devnull
+
         while True:
-            ip = q.get()
-            if nostrike and ip not in nostrike:
-                ret = subprocess.call("ping -c 1 %s" % ip,
-                                  shell=True,
-                                  stdout=open('/dev/null', 'w'),
-                                  stderr=subprocess.STDOUT)
+            try:
+                # Do not block forever; exit when queue is drained
+                ip = q.get(timeout=0.1)
+            except QueueEmpty:
+                break
+
+            try:
+                # Skip IPs in nostrike list if provided
+                allowed = (not nostrike) or (str(ip) not in nostrike)
+                if not allowed:
+                    continue
+
+                cmd = ping_tpl % ip
+                with open(devnull_path, 'w') as devnull:
+                    ret = subprocess.call(
+                        cmd,
+                        shell=True,
+                        stdout=devnull,
+                        stderr=subprocess.STDOUT,
+                    )
 
                 if ret == 0:
                     print('{gp} {ip} is alive'.format(gp=self.GREEN_PLUS, ip=str(ip)))
                     self.alive += 1
                     self.alive_hosts.append(str(ip))
+            finally:
+                # Always notify the queue that the task is processed
                 q.task_done()
         return
 
